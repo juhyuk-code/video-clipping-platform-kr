@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,9 +94,9 @@ async function getDashboardData(userId: string) {
 }
 
 export default async function DashboardPage() {
-  const t = useTranslations("dashboard");
-  const tp = useTranslations("projects");
-  const tc = useTranslations("common");
+  const t = await getTranslations("dashboard");
+  const tp = await getTranslations("projects");
+  const tc = await getTranslations("common");
 
   const session = await auth();
   const userId = session?.user?.id;

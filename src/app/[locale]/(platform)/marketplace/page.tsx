@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,8 +45,8 @@ export default async function MarketplacePage({
   searchParams: Promise<{ category?: string }>;
 }) {
   const { category } = await searchParams;
-  const t = useTranslations("marketplace");
-  const tc = useTranslations("common");
+  const t = await getTranslations("marketplace");
+  const tc = await getTranslations("common");
 
   const projects = await getMarketplaceProjects(category);
 
