@@ -101,9 +101,17 @@ export default async function DashboardPage() {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const data = userId
-    ? await getDashboardData(userId)
-    : { activeProjects: 0, completedProjects: 0, totalClips: 0, recentProjects: [] };
+  let data: { activeProjects: number; completedProjects: number; totalClips: number; recentProjects: any[] } = {
+    activeProjects: 0, completedProjects: 0, totalClips: 0, recentProjects: [],
+  };
+
+  if (userId) {
+    try {
+      data = await getDashboardData(userId);
+    } catch (e) {
+      console.error("Dashboard data fetch error:", e);
+    }
+  }
 
   return (
     <div className="space-y-8">
