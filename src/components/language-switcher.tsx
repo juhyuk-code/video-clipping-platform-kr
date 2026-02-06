@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale } from "next-intl";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "@/i18n/routing";
 import { Globe } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,28 +29,7 @@ export function LanguageSwitcher() {
   }, []);
 
   function switchLocale(newLocale: string) {
-    if (newLocale === locale) {
-      setOpen(false);
-      return;
-    }
-
-    // Remove current locale prefix if present, then add new one
-    let newPath = pathname;
-
-    // Strip existing locale prefix
-    for (const lang of languages) {
-      if (pathname.startsWith(`/${lang.code}/`) || pathname === `/${lang.code}`) {
-        newPath = pathname.slice(`/${lang.code}`.length) || "/";
-        break;
-      }
-    }
-
-    // Add new locale prefix (skip for default locale "ko" since localePrefix is "as-needed")
-    if (newLocale === "ko") {
-      router.push(newPath);
-    } else {
-      router.push(`/${newLocale}${newPath === "/" ? "" : newPath}`);
-    }
+    router.replace(pathname, { locale: newLocale as "ko" | "en" });
     setOpen(false);
   }
 
