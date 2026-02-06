@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import {
   Card,
   CardContent,
@@ -31,6 +32,7 @@ export default function LandingPage() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <span className="text-xl font-bold">{tc("appName")}</span>
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <Link href="/login">
               <Button variant="ghost">{tc("login")}</Button>
             </Link>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export function PlatformHeader() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -28,7 +29,8 @@ export function PlatformHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-end border-b bg-background/95 px-6 backdrop-blur">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 border-b bg-background/95 px-6 backdrop-blur">
+      <LanguageSwitcher />
       <div className="relative">
         <Button
           variant="ghost"
