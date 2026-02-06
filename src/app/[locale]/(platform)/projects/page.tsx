@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,8 +43,8 @@ export default async function ProjectsPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const { status: filterStatus } = await searchParams;
-  const t = useTranslations("projects");
-  const tc = useTranslations("common");
+  const t = await getTranslations("projects");
+  const tc = await getTranslations("common");
 
   const session = await auth();
   const userId = session?.user?.id;

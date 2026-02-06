@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,8 +63,8 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const t = useTranslations("projects");
-  const tc = useTranslations("common");
+  const t = await getTranslations("projects");
+  const tc = await getTranslations("common");
 
   const session = await auth();
   const project = await getProject(id);

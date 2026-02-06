@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, DollarSign, Film, FolderKanban } from "lucide-react";
 import { prisma } from "@/lib/db";
@@ -30,7 +30,7 @@ async function getAnalytics(userId: string) {
 }
 
 export default async function AnalyticsPage() {
-  const tc = useTranslations("common");
+  const tc = await getTranslations("common");
   const session = await auth();
   const userId = session?.user?.id;
   const data = userId
