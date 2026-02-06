@@ -1,0 +1,367 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth.js Models ──────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core Models ─────────────────────────────────────────────────
+
+enum UserRole {
+  CREATOR
+  CLIPPER
+  BOTH
+  ADMIN
+}
+
+enum Language {
+  KO
+  EN
+}
+
+model User {
+  id                         String    @id @default(cuid())
+  name                       String?
+  nickname                   String?
+  email                      String?   @unique
+  emailVerified              DateTime?
+  image                      String?
+  role                       UserRole  @default(CLIPPER)
+  bio                        String?   @db.Text
+  preferredLanguage          Language  @default(KO)
+  businessRegistrationNumber String?
+  isBusinessVerified         Boolean   @default(false)
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  deletedAt                  DateTime?
+
+  accounts       Account[]
+  sessions       Session[]
+  creatorProfile CreatorProfile?
+  clipperProfile ClipperProfile?
+
+  projectsAsCreator Project[]     @relation("ProjectCreator")
+  projectsAsClipper Project[]     @relation("ProjectClipper")
+  applications      Application[]
+  clips             Clip[]
+  paymentsMade      Payment[]     @relation("PaymentPayer")
+  paymentsReceived  Payment[]     @relation("PaymentPayee")
+  reviewsGiven      Review[]      @relation("ReviewReviewer")
+  reviewsReceived   Review[]      @relation("ReviewReviewee")
+  messagesSent      Message[]
+  notifications     Notification[]
+}
+
+model CreatorProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  youtubeChannelId      String?
+  youtubeChannelName    String?
+  subscriberCount       Int?
+  contentCategories     String[]
+  averageVideoViews     Int?
+  defaultClipGuidelines String?  @db.Text
+  totalProjectsPosted   Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ClipperTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model ClipperProfile {
+  id                     String     @id @default(cuid())
+  userId                 String     @unique
+  specializations        String[]
+  tier                   ClipperTier @default(BRONZE)
+  isVerified             Boolean    @default(false)
+  averageRating          Float?
+  totalProjectsCompleted Int        @default(0)
+  totalEarnings          Decimal?   @db.Decimal(12, 0)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolioItems PortfolioItem[]
+}
+
+model PortfolioItem {
+  id               String   @id @default(cuid())
+  clipperProfileId String
+  title            String
+  description      String?  @db.Text
+  videoUrl         String
+  thumbnailUrl     String?
+  platform         String
+  viewCount        Int?
+  createdAt        DateTime @default(now())
+
+  clipperProfile ClipperProfile @relation(fields: [clipperProfileId], references: [id], onDelete: Cascade)
+}
+
+// ─── Project & Marketplace ───────────────────────────────────────
+
+enum ProjectStatus {
+  DRAFT
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  IN_REVIEW
+  REVISION_REQUESTED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum ProjectType {
+  OPEN_REQUEST
+  DIRECT_ASSIGNMENT
+}
+
+enum PricingModel {
+  FIXED
+  PER_CLIP
+  REVENUE_SHARE
+  BID
+}
+
+model Project {
+  id                     String        @id @default(cuid())
+  creatorId              String
+  assignedClipperId      String?
+  title                  String
+  description            String        @db.Text
+  brief                  String        @db.Text
+  status                 ProjectStatus @default(DRAFT)
+  type                   ProjectType   @default(OPEN_REQUEST)
+  sourceVideoUrl         String?
+  sourceVideoTitle       String?
+  targetPlatforms        String[]
+  pricingModel           PricingModel  @default(FIXED)
+  budgetAmount           Decimal?      @db.Decimal(12, 0)
+  revenueSharePercentage Float?
+  maxClipsRequested      Int?
+  maxRevisionRounds      Int           @default(2)
+  currentRevisionRound   Int           @default(0)
+  deadline               DateTime
+  contentCategory        String?
+  requiredTier           ClipperTier?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  creator        User          @relation("ProjectCreator", fields: [creatorId], references: [id])
+  assignedClipper User?        @relation("ProjectClipper", fields: [assignedClipperId], references: [id])
+  applications   Application[]
+  clips          Clip[]
+  payments       Payment[]
+  reviews        Review[]
+  messages       Message[]
+
+  @@index([status, contentCategory])
+  @@index([creatorId])
+  @@index([assignedClipperId])
+}
+
+// ─── Applications ────────────────────────────────────────────────
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model Application {
+  id                    String            @id @default(cuid())
+  projectId             String
+  clipperId             String
+  status                ApplicationStatus @default(PENDING)
+  pitch                 String            @db.Text
+  proposedPrice         Decimal?          @db.Decimal(12, 0)
+  estimatedDeliveryDays Int
+  portfolioSamples      String[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clipper User    @relation(fields: [clipperId], references: [id])
+
+  @@unique([projectId, clipperId])
+  @@index([projectId, status])
+}
+
+// ─── Clips ───────────────────────────────────────────────────────
+
+enum ClipStatus {
+  SUBMITTED
+  APPROVED
+  REVISION_REQUESTED
+  REJECTED
+}
+
+model Clip {
+  id              String     @id @default(cuid())
+  projectId       String
+  clipperId       String
+  title           String
+  description     String?    @db.Text
+  videoFileUrl    String
+  thumbnailUrl    String?
+  durationSeconds Int?
+  targetPlatform  String
+  status          ClipStatus @default(SUBMITTED)
+  revisionNotes   String?    @db.Text
+  publishedUrl    String?
+  viewCount       Int?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clipper User    @relation(fields: [clipperId], references: [id])
+
+  @@index([projectId])
+}
+
+// ─── Payments ────────────────────────────────────────────────────
+
+enum PaymentStatus {
+  PENDING
+  ESCROWED
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  projectId       String
+  payerId         String
+  payeeId         String
+  amount          Decimal       @db.Decimal(12, 0)
+  platformFee     Decimal       @db.Decimal(12, 0)
+  netPayeeAmount  Decimal       @db.Decimal(12, 0)
+  status          PaymentStatus @default(PENDING)
+  tossPaymentKey  String?
+  tossOrderId     String?       @unique
+  paidAt          DateTime?
+  releasedAt      DateTime?
+  refundedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id])
+  payer   User    @relation("PaymentPayer", fields: [payerId], references: [id])
+  payee   User    @relation("PaymentPayee", fields: [payeeId], references: [id])
+
+  @@index([projectId])
+}
+
+// ─── Reviews ─────────────────────────────────────────────────────
+
+model Review {
+  id         String   @id @default(cuid())
+  projectId  String
+  reviewerId String
+  revieweeId String
+  rating     Int
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewer User    @relation("ReviewReviewer", fields: [reviewerId], references: [id])
+  reviewee User    @relation("ReviewReviewee", fields: [revieweeId], references: [id])
+
+  @@unique([projectId, reviewerId])
+}
+
+// ─── Messaging ───────────────────────────────────────────────────
+
+model Message {
+  id             String   @id @default(cuid())
+  projectId      String
+  senderId       String
+  content        String   @db.Text
+  attachmentUrls String[]
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id])
+
+  @@index([projectId, createdAt])
+}
+
+// ─── Notifications ───────────────────────────────────────────────
+
+enum NotificationType {
+  PROJECT_APPLICATION
+  PROJECT_ASSIGNED
+  CLIP_SUBMITTED
+  CLIP_APPROVED
+  REVISION_REQUESTED
+  PAYMENT_RECEIVED
+  MESSAGE_RECEIVED
+  REVIEW_RECEIVED
+  SYSTEM
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String           @db.Text
+  linkUrl   String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
