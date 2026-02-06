@@ -1,0 +1,185 @@
+{
+  "common": {
+    "appName": "Clip Platform",
+    "login": "Login",
+    "register": "Sign Up",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "marketplace": "Marketplace",
+    "messages": "Messages",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "creator": "Creator",
+    "clipper": "Clipper",
+    "viewAll": "View All",
+    "back": "Back"
+  },
+  "landing": {
+    "hero": {
+      "title": "Connecting Creators\nwith Clippers",
+      "subtitle": "Turn long-form content into viral short-form clips. Work with the best clippers.",
+      "ctaCreator": "Start as Creator",
+      "ctaClipper": "Start as Clipper"
+    },
+    "features": {
+      "title": "Why Clip Platform?",
+      "marketplace": {
+        "title": "Marketplace",
+        "description": "Post projects and find the best clippers. Filter by category, budget, and deadline."
+      },
+      "escrow": {
+        "title": "Secure Payments",
+        "description": "Escrow system ensures both creators and clippers are protected."
+      },
+      "review": {
+        "title": "Clip Review",
+        "description": "Review clips with an inline video player. Approve or request revisions instantly."
+      },
+      "analytics": {
+        "title": "Performance Analytics",
+        "description": "Track views, engagement, and ROI for published clips."
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "step1": {
+        "title": "Post a Project",
+        "description": "Set your video URL, guidelines, budget, and deadline."
+      },
+      "step2": {
+        "title": "Match with Clippers",
+        "description": "Review clipper applications and select the best fit."
+      },
+      "step3": {
+        "title": "Create & Review Clips",
+        "description": "Clipper creates clips. Review and approve them."
+      },
+      "step4": {
+        "title": "Settle & Publish",
+        "description": "Payment is released automatically. Publish your clips."
+      }
+    },
+    "stats": {
+      "creators": "Creators",
+      "clippers": "Clippers",
+      "clipsDelivered": "Clips Delivered",
+      "totalPaid": "Total Paid Out"
+    },
+    "cta": {
+      "title": "Get Started Today",
+      "subtitle": "Whether you're a creator or clipper, Clip Platform is for you.",
+      "button": "Start for Free"
+    },
+    "footer": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "support": "Support",
+      "copyright": "© 2026 Clip Platform. All rights reserved."
+    }
+  },
+  "auth": {
+    "loginTitle": "Login",
+    "registerTitle": "Sign Up",
+    "loginSubtitle": "Sign in with your social account",
+    "registerSubtitle": "Join Clip Platform",
+    "continueWithKakao": "Continue with Kakao",
+    "continueWithNaver": "Continue with Naver",
+    "continueWithGoogle": "Continue with Google",
+    "selectRole": "Select your role",
+    "roleCreator": "Creator",
+    "roleCreatorDesc": "I want to find clippers to create clips from my videos",
+    "roleClipper": "Clipper",
+    "roleClipperDesc": "I want to create short-form clips from creator videos",
+    "roleBoth": "Both",
+    "roleBothDesc": "I want to be both a creator and a clipper",
+    "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {name}!",
+    "creatorDashboard": "Creator Dashboard",
+    "clipperDashboard": "Clipper Dashboard",
+    "activeProjects": "Active Projects",
+    "completedProjects": "Completed Projects",
+    "totalClips": "Total Clips",
+    "totalEarnings": "Total Earnings",
+    "totalSpent": "Total Spent",
+    "pendingReviews": "Pending Reviews",
+    "recentProjects": "Recent Projects",
+    "newProject": "New Project",
+    "browseMarketplace": "Browse Marketplace"
+  },
+  "projects": {
+    "create": "Create Project",
+    "title": "Title",
+    "description": "Description",
+    "brief": "Clipping Guidelines",
+    "briefPlaceholder": "Describe the style, tone, and any notes for the clipper",
+    "sourceVideo": "Source Video URL",
+    "sourceVideoPlaceholder": "Enter YouTube, Twitch, or AfreecaTV URL",
+    "targetPlatforms": "Target Platforms",
+    "budget": "Budget (KRW)",
+    "deadline": "Deadline",
+    "category": "Category",
+    "pricingModel": "Pricing Model",
+    "maxClips": "Number of Clips",
+    "maxRevisions": "Max Revisions",
+    "status": {
+      "DRAFT": "Draft",
+      "OPEN": "Open",
+      "ASSIGNED": "Assigned",
+      "IN_PROGRESS": "In Progress",
+      "IN_REVIEW": "In Review",
+      "REVISION_REQUESTED": "Revision Requested",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "DISPUTED": "Disputed"
+    },
+    "noProjects": "No projects yet",
+    "apply": "Apply",
+    "applications": "Applications",
+    "clips": "Clips"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "subtitle": "Browse open projects",
+    "filterCategory": "Category",
+    "filterBudget": "Budget Range",
+    "filterPlatform": "Platform",
+    "filterDeadline": "Deadline",
+    "sortBy": "Sort by",
+    "sortNewest": "Newest",
+    "sortBudgetHigh": "Highest Budget",
+    "sortDeadlineSoon": "Deadline Soon",
+    "categories": {
+      "gaming": "Gaming",
+      "beauty": "Beauty",
+      "tech": "Tech",
+      "mukbang": "Mukbang",
+      "asmr": "ASMR",
+      "vlog": "Vlog",
+      "music": "Music",
+      "education": "Education",
+      "comedy": "Comedy",
+      "sports": "Sports",
+      "other": "Other"
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "noMessages": "No messages",
+    "typeMessage": "Type a message...",
+    "send": "Send"
+  }
+}

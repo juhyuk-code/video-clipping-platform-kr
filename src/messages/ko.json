@@ -1,0 +1,185 @@
+{
+  "common": {
+    "appName": "클립 플랫폼",
+    "login": "로그인",
+    "register": "회원가입",
+    "logout": "로그아웃",
+    "dashboard": "대시보드",
+    "projects": "프로젝트",
+    "marketplace": "마켓플레이스",
+    "messages": "메시지",
+    "analytics": "분석",
+    "settings": "설정",
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "수정",
+    "submit": "제출",
+    "search": "검색",
+    "filter": "필터",
+    "loading": "로딩 중...",
+    "noResults": "결과가 없습니다",
+    "creator": "크리에이터",
+    "clipper": "클리퍼",
+    "viewAll": "전체 보기",
+    "back": "뒤로"
+  },
+  "landing": {
+    "hero": {
+      "title": "크리에이터와 클리퍼를\n연결하는 플랫폼",
+      "subtitle": "롱폼 콘텐츠를 바이럴 숏폼 클립으로 만들어 보세요. 최고의 클리퍼와 함께하세요.",
+      "ctaCreator": "크리에이터로 시작하기",
+      "ctaClipper": "클리퍼로 시작하기"
+    },
+    "features": {
+      "title": "왜 클립 플랫폼인가요?",
+      "marketplace": {
+        "title": "마켓플레이스",
+        "description": "프로젝트를 올리고 최고의 클리퍼를 찾으세요. 카테고리, 예산, 마감일로 필터링할 수 있습니다."
+      },
+      "escrow": {
+        "title": "안전 결제",
+        "description": "에스크로 시스템으로 크리에이터와 클리퍼 모두 안심할 수 있습니다."
+      },
+      "review": {
+        "title": "클립 리뷰",
+        "description": "인라인 비디오 플레이어로 클립을 검토하고 승인, 수정 요청을 바로 할 수 있습니다."
+      },
+      "analytics": {
+        "title": "성과 분석",
+        "description": "게시된 클립의 조회수, 참여도를 추적하고 ROI를 분석하세요."
+      }
+    },
+    "howItWorks": {
+      "title": "어떻게 작동하나요?",
+      "step1": {
+        "title": "프로젝트 등록",
+        "description": "영상 URL과 가이드라인, 예산, 마감일을 설정하세요."
+      },
+      "step2": {
+        "title": "클리퍼 매칭",
+        "description": "클리퍼가 지원하면 포트폴리오를 확인하고 선택하세요."
+      },
+      "step3": {
+        "title": "클립 제작 & 리뷰",
+        "description": "클리퍼가 클립을 제작하면 검토하고 승인하세요."
+      },
+      "step4": {
+        "title": "정산 & 게시",
+        "description": "승인되면 자동으로 정산되고, 클립을 게시하세요."
+      }
+    },
+    "stats": {
+      "creators": "크리에이터",
+      "clippers": "클리퍼",
+      "clipsDelivered": "전달된 클립",
+      "totalPaid": "총 정산 금액"
+    },
+    "cta": {
+      "title": "지금 시작하세요",
+      "subtitle": "크리에이터든 클리퍼든, 클립 플랫폼에서 만나보세요.",
+      "button": "무료로 시작하기"
+    },
+    "footer": {
+      "terms": "이용약관",
+      "privacy": "개인정보처리방침",
+      "support": "고객지원",
+      "copyright": "© 2026 클립 플랫폼. All rights reserved."
+    }
+  },
+  "auth": {
+    "loginTitle": "로그인",
+    "registerTitle": "회원가입",
+    "loginSubtitle": "소셜 계정으로 간편하게 시작하세요",
+    "registerSubtitle": "클립 플랫폼에 가입하세요",
+    "continueWithKakao": "카카오로 계속하기",
+    "continueWithNaver": "네이버로 계속하기",
+    "continueWithGoogle": "구글로 계속하기",
+    "selectRole": "역할을 선택해주세요",
+    "roleCreator": "크리에이터",
+    "roleCreatorDesc": "내 영상의 클립을 만들어줄 클리퍼를 찾고 싶어요",
+    "roleClipper": "클리퍼",
+    "roleClipperDesc": "크리에이터의 영상으로 숏폼 클립을 만들고 싶어요",
+    "roleBoth": "둘 다",
+    "roleBothDesc": "크리에이터이면서 클리퍼로도 활동하고 싶어요",
+    "agreeTerms": "이용약관 및 개인정보처리방침에 동의합니다",
+    "alreadyHaveAccount": "이미 계정이 있으신가요?",
+    "dontHaveAccount": "계정이 없으신가요?"
+  },
+  "dashboard": {
+    "welcome": "{name}님, 환영합니다!",
+    "creatorDashboard": "크리에이터 대시보드",
+    "clipperDashboard": "클리퍼 대시보드",
+    "activeProjects": "진행 중인 프로젝트",
+    "completedProjects": "완료된 프로젝트",
+    "totalClips": "총 클립 수",
+    "totalEarnings": "총 수입",
+    "totalSpent": "총 지출",
+    "pendingReviews": "리뷰 대기",
+    "recentProjects": "최근 프로젝트",
+    "newProject": "새 프로젝트 만들기",
+    "browseMarketplace": "마켓플레이스 둘러보기"
+  },
+  "projects": {
+    "create": "프로젝트 만들기",
+    "title": "제목",
+    "description": "설명",
+    "brief": "클리핑 가이드라인",
+    "briefPlaceholder": "클리퍼에게 원하는 스타일, 톤, 주의사항 등을 설명해주세요",
+    "sourceVideo": "원본 영상 URL",
+    "sourceVideoPlaceholder": "YouTube, Twitch, AfreecaTV URL을 입력하세요",
+    "targetPlatforms": "타겟 플랫폼",
+    "budget": "예산 (₩)",
+    "deadline": "마감일",
+    "category": "카테고리",
+    "pricingModel": "가격 모델",
+    "maxClips": "요청 클립 수",
+    "maxRevisions": "최대 수정 횟수",
+    "status": {
+      "DRAFT": "초안",
+      "OPEN": "공개",
+      "ASSIGNED": "배정됨",
+      "IN_PROGRESS": "진행 중",
+      "IN_REVIEW": "검토 중",
+      "REVISION_REQUESTED": "수정 요청",
+      "COMPLETED": "완료",
+      "CANCELLED": "취소됨",
+      "DISPUTED": "분쟁 중"
+    },
+    "noProjects": "아직 프로젝트가 없습니다",
+    "apply": "지원하기",
+    "applications": "지원서",
+    "clips": "클립"
+  },
+  "marketplace": {
+    "title": "마켓플레이스",
+    "subtitle": "진행 중인 프로젝트를 찾아보세요",
+    "filterCategory": "카테고리",
+    "filterBudget": "예산 범위",
+    "filterPlatform": "플랫폼",
+    "filterDeadline": "마감일",
+    "sortBy": "정렬",
+    "sortNewest": "최신순",
+    "sortBudgetHigh": "예산 높은순",
+    "sortDeadlineSoon": "마감 임박순",
+    "categories": {
+      "gaming": "게이밍",
+      "beauty": "뷰티",
+      "tech": "테크",
+      "mukbang": "먹방",
+      "asmr": "ASMR",
+      "vlog": "브이로그",
+      "music": "음악",
+      "education": "교육",
+      "comedy": "코미디",
+      "sports": "스포츠",
+      "other": "기타"
+    }
+  },
+  "messages": {
+    "title": "메시지",
+    "noMessages": "메시지가 없습니다",
+    "typeMessage": "메시지를 입력하세요...",
+    "send": "전송"
+  }
+}
