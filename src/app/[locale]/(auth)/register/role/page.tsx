@@ -20,6 +20,8 @@ export default function RoleSelectionPage() {
   const tc = useTranslations("common");
   const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const roles = [
     {
@@ -44,8 +46,24 @@ export default function RoleSelectionPage() {
 
   async function handleSubmit() {
     if (!selectedRole) return;
-    // TODO: API call to update user role
-    router.push("/dashboard");
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/users/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: selectedRole }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "역할 설정에 실패했습니다");
+      }
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -63,6 +81,11 @@ export default function RoleSelectionPage() {
             <CardDescription>{t("registerSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {error && (
+              <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             {roles.map((role) => (
               <button
                 key={role.id}
@@ -88,10 +111,10 @@ export default function RoleSelectionPage() {
             <Button
               size="lg"
               className="mt-4 w-full"
-              disabled={!selectedRole}
+              disabled={!selectedRole || submitting}
               onClick={handleSubmit}
             >
-              {tc("save")}
+              {submitting ? "설정 중..." : tc("save")}
             </Button>
           </CardContent>
         </Card>

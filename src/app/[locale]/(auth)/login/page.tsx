@@ -1,5 +1,6 @@
 "use client";
 
+import { signIn } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
@@ -72,9 +73,7 @@ export default function LoginPage() {
             <Button
               className="w-full gap-3 bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90"
               size="lg"
-              onClick={() => {
-                /* signIn("kakao") */
-              }}
+              onClick={() => signIn("kakao", { callbackUrl: "/dashboard" })}
             >
               <KakaoIcon />
               {t("continueWithKakao")}
@@ -83,9 +82,7 @@ export default function LoginPage() {
             <Button
               className="w-full gap-3 bg-[#03C75A] text-white hover:bg-[#03C75A]/90"
               size="lg"
-              onClick={() => {
-                /* signIn("naver") */
-              }}
+              onClick={() => signIn("naver", { callbackUrl: "/dashboard" })}
             >
               <NaverIcon />
               {t("continueWithNaver")}
@@ -95,9 +92,7 @@ export default function LoginPage() {
               variant="outline"
               className="w-full gap-3"
               size="lg"
-              onClick={() => {
-                /* signIn("google") */
-              }}
+              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
             >
               <GoogleIcon />
               {t("continueWithGoogle")}

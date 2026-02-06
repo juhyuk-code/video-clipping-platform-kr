@@ -1,4 +1,5 @@
 import { PlatformSidebar } from "@/components/layouts/platform-sidebar";
+import { PlatformHeader } from "@/components/layouts/platform-header";
 
 export default function PlatformLayout({
   children,
@@ -8,9 +9,12 @@ export default function PlatformLayout({
   return (
     <div className="flex min-h-screen">
       <PlatformSidebar />
-      <main className="flex-1 pl-64">
-        <div className="container mx-auto p-6">{children}</div>
-      </main>
+      <div className="flex flex-1 flex-col pl-64">
+        <PlatformHeader />
+        <main className="flex-1">
+          <div className="container mx-auto p-6">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }
