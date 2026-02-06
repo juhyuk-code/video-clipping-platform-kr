@@ -12,6 +12,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { formatKRW } from "@/lib/utils";
 import { getValidTransitions } from "@/lib/projects/state-machine";
+import { MessageThread } from "@/components/messages/message-thread";
 
 const STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "outline", OPEN: "default", ASSIGNED: "secondary",
@@ -215,6 +216,25 @@ export default async function ProjectDetailPage({
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Messages — only visible to creator and assigned clipper */}
+          {(isCreator || isClipper) && project.assignedClipperId && session?.user?.id && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MessageSquare className="h-5 w-5" />
+                  메시지 ({project._count.messages})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <MessageThread
+                  projectId={project.id}
+                  projectTitle={project.title}
+                  currentUserId={session.user.id}
+                />
               </CardContent>
             </Card>
           )}
