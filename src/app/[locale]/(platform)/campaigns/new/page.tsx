@@ -85,8 +85,8 @@ export default function NewCampaignPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "캠페인 생성에 실패했습니다");
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `서버 오류 (${res.status})`);
       }
       const campaign = await res.json();
       router.push(`/campaigns/${campaign.id}`);
