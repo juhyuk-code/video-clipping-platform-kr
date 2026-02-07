@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
     return apiResponse(campaign, 201);
   } catch (e) {
     console.error("POST /api/v1/campaigns error:", e);
-    return apiError("캠페인 생성 중 오류가 발생했습니다", 500);
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return apiError(`캠페인 생성 오류: ${msg}`, 500);
   }
 }
