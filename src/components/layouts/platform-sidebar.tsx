@@ -2,11 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  FolderKanban,
-  ShoppingBag,
   MessageSquare,
   BarChart3,
   Settings,
@@ -77,6 +76,7 @@ export function PlatformSidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground"
+          onClick={() => signOut({ callbackUrl: "/login" })}
         >
           <LogOut className="h-5 w-5" />
           {tc("logout")}
