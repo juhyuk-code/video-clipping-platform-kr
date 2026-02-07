@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "@/i18n/routing";
 import { useMode } from "@/contexts/mode-context";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -15,6 +19,9 @@ import {
   Eye,
   Wallet,
   Calendar,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw,
 } from "lucide-react";
 import { formatKRW } from "@/lib/utils";
 import { CampaignActions } from "./campaign-actions";
@@ -199,52 +206,13 @@ export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
                 {campaign.submissions.length === 0 ? (
                   <p className="py-8 text-center text-muted-foreground">아직 제출된 클립이 없습니다</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {campaign.submissions.map((sub) => (
-                      <div key={sub.id} className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-1">
-                          <p className="font-medium">
-                            {sub.clipper.nickname ?? sub.clipper.name}
-                          </p>
-                          {sub.clipTitle && (
-                            <p className="text-sm text-muted-foreground">{sub.clipTitle}</p>
-                          )}
-                          {sub.pitch && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">{sub.pitch}</p>
-                          )}
-                          {sub.clipUrl && (
-                            <a
-                              href={sub.clipUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-primary hover:underline"
-                            >
-                              클립 보기
-                            </a>
-                          )}
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {sub.latestViewCount > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Eye className="h-3 w-3" />
-                                {sub.latestViewCount.toLocaleString()} views
-                              </span>
-                            )}
-                            <span>
-                              {new Date(sub.createdAt).toLocaleDateString("ko-KR")}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {sub.totalPaid > 0 && (
-                            <span className="text-sm font-medium text-green-600">
-                              {formatKRW(sub.totalPaid)}
-                            </span>
-                          )}
-                          <Badge variant={SUB_STATUS_COLORS[sub.status] ?? "outline"}>
-                            {SUB_STATUS_LABELS[sub.status]}
-                          </Badge>
-                        </div>
-                      </div>
+                      <SubmissionReviewCard
+                        key={sub.id}
+                        submission={sub}
+                        campaignId={campaign.id}
+                      />
                     ))}
                   </div>
                 )}
@@ -342,6 +310,186 @@ export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
         </div>
       </div>
     </>
+  );
+}
+
+function SubmissionReviewCard({
+  submission: sub,
+  campaignId,
+}: {
+  submission: Submission;
+  campaignId: string;
+}) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [revisionNotes, setRevisionNotes] = useState("");
+
+  const canReview = ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
+
+  async function handleReview(status: "APPROVED" | "REVISION_REQ" | "REJECTED") {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/v1/campaigns/${campaignId}/submissions/${sub.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status,
+            revisionNotes: status !== "APPROVED" ? revisionNotes : undefined,
+          }),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "오류가 발생했습니다");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border p-4 space-y-3">
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="font-medium">
+            {sub.clipper.nickname ?? sub.clipper.name}
+          </p>
+          {sub.clipTitle && (
+            <p className="text-sm text-muted-foreground">{sub.clipTitle}</p>
+          )}
+          {sub.pitch && (
+            <p className="text-sm text-muted-foreground line-clamp-2">{sub.pitch}</p>
+          )}
+          {sub.clipUrl && (
+            <a
+              href={sub.clipUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline"
+            >
+              클립 보기
+            </a>
+          )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {sub.latestViewCount > 0 && (
+              <span className="flex items-center gap-1">
+                <Eye className="h-3 w-3" />
+                {sub.latestViewCount.toLocaleString()} views
+              </span>
+            )}
+            <span>{new Date(sub.createdAt).toLocaleDateString("ko-KR")}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {sub.totalPaid > 0 && (
+            <span className="text-sm font-medium text-green-600">
+              {formatKRW(sub.totalPaid)}
+            </span>
+          )}
+          <Badge variant={SUB_STATUS_COLORS[sub.status] ?? "outline"}>
+            {SUB_STATUS_LABELS[sub.status]}
+          </Badge>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded border border-destructive bg-destructive/10 p-2 text-xs text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* Review actions for SUBMITTED / IN_REVIEW submissions */}
+      {canReview && !showRevisionForm && (
+        <div className="flex gap-2 pt-1">
+          <Button
+            size="sm"
+            className="gap-1"
+            onClick={() => handleReview("APPROVED")}
+            disabled={loading}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" />
+            승인
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1"
+            onClick={() => setShowRevisionForm(true)}
+            disabled={loading}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            수정 요청
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1"
+            onClick={() => setShowRevisionForm(true)}
+            disabled={loading}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" />
+            반려
+          </Button>
+        </div>
+      )}
+
+      {/* Revision / rejection notes form */}
+      {canReview && showRevisionForm && (
+        <div className="space-y-2 pt-1">
+          <Textarea
+            value={revisionNotes}
+            onChange={(e) => setRevisionNotes(e.target.value)}
+            placeholder="사유를 입력해주세요..."
+            rows={2}
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1"
+              onClick={() => handleReview("REVISION_REQ")}
+              disabled={loading || !revisionNotes.trim()}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              수정 요청
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="gap-1"
+              onClick={() => handleReview("REJECTED")}
+              disabled={loading || !revisionNotes.trim()}
+            >
+              <ThumbsDown className="h-3.5 w-3.5" />
+              반려
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => { setShowRevisionForm(false); setRevisionNotes(""); }}
+            >
+              취소
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Show previous revision notes */}
+      {sub.revisionNotes && sub.status === "REVISION_REQ" && (
+        <div className="rounded border border-yellow-500 bg-yellow-50 p-2 text-xs dark:bg-yellow-900/20">
+          <span className="font-medium text-yellow-800 dark:text-yellow-200">수정 요청: </span>
+          <span className="text-yellow-700 dark:text-yellow-300">{sub.revisionNotes}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
