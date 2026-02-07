@@ -20,7 +20,6 @@ import {
   Eye,
 } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { auth } from "@/lib/auth";
 import { formatKRW } from "@/lib/utils";
 
 const TYPE_COLORS: Record<string, "default" | "secondary" | "outline"> = {
@@ -64,9 +63,13 @@ export default async function CampaignsPage({
   const t = await getTranslations("campaigns");
   const tc = await getTranslations("common");
   const tm = await getTranslations("marketplace");
-  const session = await auth();
 
-  const campaigns = await getCampaigns(type, category);
+  let campaigns: any[] = [];
+  try {
+    campaigns = await getCampaigns(type, category);
+  } catch (e) {
+    console.error("Campaign fetch error:", e);
+  }
 
   const categories = [
     "gaming", "beauty", "tech", "mukbang", "vlog",
@@ -167,7 +170,7 @@ export default async function CampaignsPage({
                     {campaign.description}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1">
-                    {campaign.targetPlatforms.map((p) => (
+                    {campaign.targetPlatforms.map((p: string) => (
                       <Badge key={p} variant="outline" className="text-xs">
                         {p.replace("_", " ")}
                       </Badge>
