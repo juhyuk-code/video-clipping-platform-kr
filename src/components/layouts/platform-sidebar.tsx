@@ -12,28 +12,44 @@ import {
   Settings,
   LogOut,
   Scissors,
+  Megaphone,
+  Wallet,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { key: "projects", href: "/projects", icon: FolderKanban },
-  { key: "marketplace", href: "/marketplace", icon: ShoppingBag },
-  { key: "messages", href: "/messages", icon: MessageSquare },
-  { key: "analytics", href: "/analytics", icon: BarChart3 },
-  { key: "settings", href: "/settings", icon: Settings },
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, ns: "common" },
+  { key: "title", href: "/campaigns", icon: Megaphone, ns: "campaigns" },
+  { key: "title", href: "/wallet", icon: Wallet, ns: "wallet" },
+  { key: "title", href: "/my-submissions", icon: ClipboardList, ns: "mySubmissions" },
+  { key: "projects", href: "/projects", icon: FolderKanban, ns: "common" },
+  { key: "marketplace", href: "/marketplace", icon: ShoppingBag, ns: "common" },
+  { key: "messages", href: "/messages", icon: MessageSquare, ns: "common" },
+  { key: "analytics", href: "/analytics", icon: BarChart3, ns: "common" },
+  { key: "settings", href: "/settings", icon: Settings, ns: "common" },
 ] as const;
 
 export function PlatformSidebar() {
-  const t = useTranslations("common");
+  const tc = useTranslations("common");
+  const tCamp = useTranslations("campaigns");
+  const tWallet = useTranslations("wallet");
+  const tSub = useTranslations("mySubmissions");
   const pathname = usePathname();
+
+  function getLabel(ns: string, key: string) {
+    if (ns === "campaigns") return tCamp(key as any);
+    if (ns === "wallet") return tWallet(key as any);
+    if (ns === "mySubmissions") return tSub(key as any);
+    return tc(key as any);
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-background">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
         <Scissors className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">{t("appName")}</span>
+        <span className="text-lg font-bold">{tc("appName")}</span>
       </div>
 
       {/* Navigation */}
@@ -42,7 +58,7 @@ export function PlatformSidebar() {
           const isActive = pathname.startsWith(item.href);
           return (
             <Link
-              key={item.key}
+              key={item.href}
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
@@ -52,7 +68,7 @@ export function PlatformSidebar() {
               )}
             >
               <item.icon className="h-5 w-5" />
-              {t(item.key)}
+              {getLabel(item.ns, item.key)}
             </Link>
           );
         })}
@@ -65,7 +81,7 @@ export function PlatformSidebar() {
           className="w-full justify-start gap-3 text-muted-foreground"
         >
           <LogOut className="h-5 w-5" />
-          {t("logout")}
+          {tc("logout")}
         </Button>
       </div>
     </aside>
