@@ -1,5 +1,6 @@
 import { PlatformSidebar } from "@/components/layouts/platform-sidebar";
 import { PlatformHeader } from "@/components/layouts/platform-header";
+import { ModeProvider } from "@/contexts/mode-context";
 
 export default function PlatformLayout({
   children,
@@ -7,14 +8,16 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
-      <PlatformSidebar />
-      <div className="flex flex-1 flex-col pl-64">
-        <PlatformHeader />
-        <main className="flex-1">
-          <div className="container mx-auto p-6">{children}</div>
-        </main>
+    <ModeProvider>
+      <div className="flex min-h-screen">
+        <PlatformSidebar />
+        <div className="flex flex-1 flex-col pl-64">
+          <PlatformHeader />
+          <main className="flex-1">
+            <div className="container mx-auto p-6">{children}</div>
+          </main>
+        </div>
       </div>
-    </div>
+    </ModeProvider>
   );
 }

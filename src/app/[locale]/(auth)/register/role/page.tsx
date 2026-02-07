@@ -11,9 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Video, Scissors, Users } from "lucide-react";
+import { Video, Scissors } from "lucide-react";
 
-type Role = "CREATOR" | "CLIPPER" | "BOTH";
+type Role = "CREATOR" | "CLIPPER";
 
 export default function RoleSelectionPage() {
   const t = useTranslations("auth");
@@ -35,12 +35,6 @@ export default function RoleSelectionPage() {
       icon: Scissors,
       label: t("roleClipper"),
       description: t("roleClipperDesc"),
-    },
-    {
-      id: "BOTH" as Role,
-      icon: Users,
-      label: t("roleBoth"),
-      description: t("roleBothDesc"),
     },
   ];
 
@@ -108,9 +102,13 @@ export default function RoleSelectionPage() {
               </button>
             ))}
 
+            <p className="text-center text-xs text-muted-foreground">
+              언제든지 사이드바에서 모드를 전환할 수 있습니다
+            </p>
+
             <Button
               size="lg"
-              className="mt-4 w-full"
+              className="mt-2 w-full"
               disabled={!selectedRole || submitting}
               onClick={handleSubmit}
             >
