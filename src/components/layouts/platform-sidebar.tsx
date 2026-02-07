@@ -21,10 +21,8 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, ns: "common" },
   { key: "title", href: "/campaigns", icon: Megaphone, ns: "campaigns" },
-  { key: "title", href: "/wallet", icon: Wallet, ns: "wallet" },
   { key: "title", href: "/my-submissions", icon: ClipboardList, ns: "mySubmissions" },
-  { key: "projects", href: "/projects", icon: FolderKanban, ns: "common" },
-  { key: "marketplace", href: "/marketplace", icon: ShoppingBag, ns: "common" },
+  { key: "title", href: "/wallet", icon: Wallet, ns: "wallet" },
   { key: "messages", href: "/messages", icon: MessageSquare, ns: "common" },
   { key: "analytics", href: "/analytics", icon: BarChart3, ns: "common" },
   { key: "settings", href: "/settings", icon: Settings, ns: "common" },
