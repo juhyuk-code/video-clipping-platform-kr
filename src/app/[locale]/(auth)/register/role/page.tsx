@@ -49,9 +49,11 @@ export default function RoleSelectionPage() {
         body: JSON.stringify({ role: selectedRole }),
       });
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "역할 설정에 실패했습니다");
       }
+      // Set initial mode to match chosen role
+      localStorage.setItem("platform-mode", selectedRole.toLowerCase());
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");

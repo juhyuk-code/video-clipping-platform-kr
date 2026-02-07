@@ -73,7 +73,7 @@ export const createMessageSchema = z.object({
 export const updateUserProfileSchema = z.object({
   nickname: z.string().min(1).max(50).optional(),
   bio: z.string().max(500).optional(),
-  role: z.enum(["CREATOR", "CLIPPER", "BOTH"]).optional(),
+  role: z.enum(["CREATOR", "CLIPPER"]).optional(),
   preferredLanguage: z.enum(["KO", "EN"]).optional(),
 });
 

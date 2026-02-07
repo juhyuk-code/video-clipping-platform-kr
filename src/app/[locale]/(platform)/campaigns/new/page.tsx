@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/card";
 import { FolderKanban, Gift, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMode } from "@/contexts/mode-context";
+import { Link } from "@/i18n/routing";
 
 const TARGET_PLATFORMS = [
   { id: "YOUTUBE_SHORTS", label: "YouTube Shorts" },
@@ -34,6 +36,21 @@ export default function NewCampaignPage() {
   const tc = useTranslations("common");
   const tm = useTranslations("marketplace");
   const router = useRouter();
+  const { mode } = useMode();
+
+  // Only creators can create campaigns
+  if (mode !== "creator") {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <p className="text-lg text-muted-foreground">
+          캠페인 생성은 크리에이터 모드에서만 가능합니다
+        </p>
+        <Link href="/campaigns">
+          <Button variant="outline">캠페인 찾기로 돌아가기</Button>
+        </Link>
+      </div>
+    );
+  }
 
   const [campaignType, setCampaignType] = useState<"PROJECT" | "REWARD" | "HYBRID">("PROJECT");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);

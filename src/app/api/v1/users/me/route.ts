@@ -44,22 +44,18 @@ export async function PUT(req: NextRequest) {
     data,
   });
 
-  // Create profiles if role changed
+  // Create both profiles so user can freely switch modes
   if (data.role) {
-    if (data.role === "CREATOR" || data.role === "BOTH") {
-      await prisma.creatorProfile.upsert({
-        where: { userId: user.id },
-        create: { userId: user.id },
-        update: {},
-      });
-    }
-    if (data.role === "CLIPPER" || data.role === "BOTH") {
-      await prisma.clipperProfile.upsert({
-        where: { userId: user.id },
-        create: { userId: user.id },
-        update: {},
-      });
-    }
+    await prisma.creatorProfile.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id },
+      update: {},
+    });
+    await prisma.clipperProfile.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id },
+      update: {},
+    });
   }
 
   return apiResponse(updated);
