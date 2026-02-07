@@ -9,12 +9,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  FolderKanban,
+  Megaphone,
   CheckCircle,
-  Film,
   Wallet,
   Plus,
-  ShoppingBag,
+  ClipboardList,
   Calendar,
 } from "lucide-react";
 import { prisma } from "@/lib/db";
@@ -45,64 +44,71 @@ function StatCard({
   );
 }
 
+const TYPE_COLORS: Record<string, "default" | "secondary" | "outline"> = {
+  PROJECT: "default",
+  REWARD: "secondary",
+  HYBRID: "outline",
+};
+
 const STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  OPEN: "default",
-  IN_PROGRESS: "secondary",
-  IN_REVIEW: "secondary",
-  COMPLETED: "outline",
   DRAFT: "outline",
+  ACTIVE: "default",
+  PAUSED: "secondary",
+  COMPLETED: "outline",
+  CANCELLED: "destructive",
 };
 
 async function getDashboardData(userId: string) {
-  const [activeProjects, completedProjects, totalClips, recentProjects] =
+  const [activeCampaigns, completedCampaigns, mySubmissions, wallet, recentCampaigns] =
     await Promise.all([
-      prisma.project.count({
-        where: {
-          OR: [{ creatorId: userId }, { assignedClipperId: userId }],
-          status: { in: ["OPEN", "ASSIGNED", "IN_PROGRESS", "IN_REVIEW", "REVISION_REQUESTED"] },
-        },
+      prisma.campaign.count({
+        where: { creatorId: userId, status: { in: ["ACTIVE", "PAUSED"] } },
       }),
-      prisma.project.count({
-        where: {
-          OR: [{ creatorId: userId }, { assignedClipperId: userId }],
-          status: "COMPLETED",
-        },
+      prisma.campaign.count({
+        where: { creatorId: userId, status: "COMPLETED" },
       }),
-      prisma.clip.count({
+      prisma.campaignSubmission.count({
+        where: { clipperId: userId },
+      }),
+      prisma.wallet.findUnique({ where: { userId } }),
+      prisma.campaign.findMany({
         where: {
           OR: [
-            { project: { creatorId: userId } },
-            { clipperId: userId },
+            { creatorId: userId },
+            { submissions: { some: { clipperId: userId } } },
           ],
-        },
-      }),
-      prisma.project.findMany({
-        where: {
-          OR: [{ creatorId: userId }, { assignedClipperId: userId }],
         },
         orderBy: { updatedAt: "desc" },
         take: 5,
         include: {
           creator: { select: { nickname: true, name: true } },
-          assignedClipper: { select: { nickname: true, name: true } },
-          _count: { select: { applications: true, clips: true } },
+          _count: { select: { submissions: true } },
         },
       }),
     ]);
 
-  return { activeProjects, completedProjects, totalClips, recentProjects };
+  return {
+    activeCampaigns,
+    completedCampaigns,
+    mySubmissions,
+    walletBalance: Number(wallet?.balance ?? 0),
+    recentCampaigns,
+  };
 }
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
-  const tp = await getTranslations("projects");
-  const tc = await getTranslations("common");
+  const tc = await getTranslations("campaigns");
 
   const session = await auth();
   const userId = session?.user?.id;
 
-  let data: { activeProjects: number; completedProjects: number; totalClips: number; recentProjects: any[] } = {
-    activeProjects: 0, completedProjects: 0, totalClips: 0, recentProjects: [],
+  let data = {
+    activeCampaigns: 0,
+    completedCampaigns: 0,
+    mySubmissions: 0,
+    walletBalance: 0,
+    recentCampaigns: [] as any[],
   };
 
   if (userId) {
@@ -124,16 +130,16 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href="/marketplace">
+          <Link href="/campaigns">
             <Button variant="outline" className="gap-2">
-              <ShoppingBag className="h-4 w-4" />
-              {t("browseMarketplace")}
+              <Megaphone className="h-4 w-4" />
+              {tc("allCampaigns")}
             </Button>
           </Link>
-          <Link href="/projects/new">
+          <Link href="/campaigns/new">
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
-              {t("newProject")}
+              {tc("create")}
             </Button>
           </Link>
         </div>
@@ -142,65 +148,76 @@ export default async function DashboardPage() {
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          icon={FolderKanban}
+          icon={Megaphone}
           label={t("activeProjects")}
-          value={String(data.activeProjects)}
+          value={String(data.activeCampaigns)}
         />
         <StatCard
           icon={CheckCircle}
           label={t("completedProjects")}
-          value={String(data.completedProjects)}
+          value={String(data.completedCampaigns)}
         />
         <StatCard
-          icon={Film}
+          icon={ClipboardList}
           label={t("totalClips")}
-          value={String(data.totalClips)}
+          value={String(data.mySubmissions)}
         />
-        <StatCard icon={Wallet} label={t("totalSpent")} value="₩0" />
+        <StatCard
+          icon={Wallet}
+          label={t("totalSpent")}
+          value={formatKRW(data.walletBalance)}
+        />
       </div>
 
-      {/* Recent Projects */}
+      {/* Recent Campaigns */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>{t("recentProjects")}</CardTitle>
-            <Link href="/projects">
+            <Link href="/campaigns">
               <Button variant="ghost" size="sm">
-                {tc("viewAll")}
+                전체 보기
               </Button>
             </Link>
           </div>
         </CardHeader>
         <CardContent>
-          {data.recentProjects.length === 0 ? (
+          {data.recentCampaigns.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FolderKanban className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">{tp("noProjects")}</p>
-              <Link href="/projects/new" className="mt-4">
+              <Megaphone className="mb-4 h-12 w-12 text-muted-foreground/50" />
+              <p className="text-muted-foreground">{tc("noCampaigns")}</p>
+              <Link href="/campaigns/new" className="mt-4">
                 <Button variant="outline" className="gap-2">
                   <Plus className="h-4 w-4" />
-                  {t("newProject")}
+                  {tc("create")}
                 </Button>
               </Link>
             </div>
           ) : (
             <div className="space-y-3">
-              {data.recentProjects.map((project) => (
-                <Link key={project.id} href={`/projects/${project.id}`}>
+              {data.recentCampaigns.map((campaign: any) => (
+                <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
                   <div className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent">
                     <div className="space-y-1">
-                      <p className="font-medium">{project.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{campaign.title}</p>
+                        <Badge variant={TYPE_COLORS[campaign.type] ?? "outline"} className="text-xs">
+                          {tc(`type.${campaign.type}`)}
+                        </Badge>
+                      </div>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(project.deadline).toLocaleDateString("ko-KR")}
+                          {new Date(campaign.deadline).toLocaleDateString("ko-KR")}
                         </span>
-                        <span>{project._count.applications}명 지원</span>
-                        <span>{project._count.clips}개 클립</span>
+                        <span>{campaign._count.submissions}명 참여</span>
+                        {campaign.totalBudget && (
+                          <span>{formatKRW(Number(campaign.totalBudget))}</span>
+                        )}
                       </div>
                     </div>
-                    <Badge variant={STATUS_COLORS[project.status] ?? "outline"}>
-                      {tp(`status.${project.status}`)}
+                    <Badge variant={STATUS_COLORS[campaign.status] ?? "outline"}>
+                      {tc(`status.${campaign.status}`)}
                     </Badge>
                   </div>
                 </Link>
