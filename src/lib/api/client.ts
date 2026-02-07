@@ -135,4 +135,58 @@ export const api = {
       });
     },
   },
+
+  campaigns: {
+    list(params?: Record<string, string>) {
+      const qs = new URLSearchParams(params);
+      return request<{ campaigns: any[]; pagination: any }>(`/campaigns?${qs}`);
+    },
+    get(id: string) {
+      return request<any>(`/campaigns/${id}`);
+    },
+    create(data: any) {
+      return request<any>("/campaigns", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    update(id: string, data: any) {
+      return request<any>(`/campaigns/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    delete(id: string) {
+      return request<any>(`/campaigns/${id}`, { method: "DELETE" });
+    },
+    submissions: {
+      list(campaignId: string) {
+        return request<any[]>(`/campaigns/${campaignId}/submissions`);
+      },
+      apply(campaignId: string, data: any) {
+        return request<any>(`/campaigns/${campaignId}/submissions`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      update(campaignId: string, subId: string, data: any) {
+        return request<any>(`/campaigns/${campaignId}/submissions/${subId}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+      },
+    },
+  },
+
+  wallet: {
+    get() {
+      return request<any>("/wallet");
+    },
+    deposit(amount: number) {
+      return request<any>("/wallet/deposit", {
+        method: "POST",
+        body: JSON.stringify({ amount }),
+      });
+    },
+  },
 };

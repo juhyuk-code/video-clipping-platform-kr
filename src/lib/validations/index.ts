@@ -87,3 +87,65 @@ export const marketplaceQuerySchema = z.object({
   sort: z.enum(["newest", "budget_high", "deadline_soon"]).default("newest"),
   search: z.string().optional(),
 });
+
+// ─── Campaign Schemas ───────────────────────────────────────
+
+export const createCampaignSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().min(1),
+  guidelines: z.string().min(1),
+  type: z.enum(["PROJECT", "REWARD", "HYBRID"]),
+  contentCategory: z.string().optional(),
+  sourceVideoUrl: z.string().url().optional(),
+  sourceVideoTitle: z.string().optional(),
+  targetPlatforms: z.array(z.string()).min(1),
+
+  totalBudget: z.number().int().positive().optional(),
+  fixedPayPerClip: z.number().int().positive().optional(),
+  cprRate: z.number().positive().optional(),
+  viewBonusRate: z.number().positive().optional(),
+  maxParticipants: z.number().int().positive().optional(),
+  maxClipsPerUser: z.number().int().positive().default(1),
+  minViewThreshold: z.number().int().min(0).default(0),
+
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  deadline: z.string().datetime(),
+});
+
+export const updateCampaignSchema = createCampaignSchema.partial().extend({
+  status: z.enum(["DRAFT", "ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"]).optional(),
+});
+
+export const campaignQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(20),
+  type: z.enum(["PROJECT", "REWARD", "HYBRID"]).optional(),
+  category: z.string().optional(),
+  minBudget: z.coerce.number().int().optional(),
+  maxBudget: z.coerce.number().int().optional(),
+  sort: z.enum(["newest", "budget_high", "deadline_soon", "most_participants"]).default("newest"),
+  search: z.string().optional(),
+});
+
+export const applyToCampaignSchema = z.object({
+  pitch: z.string().min(1).optional(),
+  proposedPrice: z.number().int().positive().optional(),
+});
+
+export const submitToCampaignSchema = z.object({
+  clipTitle: z.string().min(1).max(200),
+  clipUrl: z.string().url().optional(),
+  clipFileUrl: z.string().url().optional(),
+  thumbnailUrl: z.string().url().optional(),
+  targetPlatform: z.string(),
+});
+
+export const reviewSubmissionSchema = z.object({
+  status: z.enum(["APPROVED", "REVISION_REQ", "REJECTED"]),
+  revisionNotes: z.string().optional(),
+});
+
+export const walletDepositSchema = z.object({
+  amount: z.number().int().positive().min(1000),
+});

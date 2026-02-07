@@ -181,5 +181,131 @@
     "noMessages": "No messages",
     "typeMessage": "Type a message...",
     "send": "Send"
+  },
+  "campaigns": {
+    "title": "Campaigns",
+    "create": "Create Campaign",
+    "myCampaigns": "My Campaigns",
+    "allCampaigns": "All Campaigns",
+    "noCampaigns": "No campaigns yet",
+    "createFirst": "Create your first campaign",
+    "type": {
+      "label": "Campaign Type",
+      "PROJECT": "Project-Based",
+      "REWARD": "Content Rewards",
+      "HYBRID": "Hybrid",
+      "PROJECT_desc": "Fixed pay per clip. Clippers apply, you select and review.",
+      "REWARD_desc": "Pay per view. Anyone can join and submit clips.",
+      "HYBRID_desc": "Fixed fee per clip plus view-based bonus."
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "guidelines": "Clipping Guidelines",
+      "guidelinesPlaceholder": "Describe the style, tone, and any notes for the clipper",
+      "sourceVideo": "Source Video URL",
+      "targetPlatforms": "Target Platforms",
+      "category": "Category",
+      "deadline": "Deadline",
+      "totalBudget": "Total Budget (KRW)",
+      "fixedPayPerClip": "Fixed Pay Per Clip (KRW)",
+      "cprRate": "CPR (Cost per 1000 views, KRW)",
+      "viewBonusRate": "View Bonus (per 1000 views, KRW)",
+      "maxParticipants": "Max Participants",
+      "maxClipsPerUser": "Max Clips Per User",
+      "minViewThreshold": "Min View Threshold",
+      "startDate": "Start Date",
+      "endDate": "End Date"
+    },
+    "actions": {
+      "activate": "Start Campaign",
+      "pause": "Pause",
+      "resume": "Resume",
+      "complete": "Mark Complete",
+      "cancel": "Cancel Campaign",
+      "apply": "Apply",
+      "join": "Join",
+      "submitClip": "Submit Clip"
+    },
+    "submission": {
+      "title": "Submissions",
+      "pitch": "Application Message",
+      "pitchPlaceholder": "Explain why you want to join this campaign",
+      "clipTitle": "Clip Title",
+      "clipUrl": "Published Clip URL",
+      "clipFile": "Clip File",
+      "revisionNotes": "Revision Notes",
+      "approve": "Approve",
+      "reject": "Reject",
+      "requestRevision": "Request Revision",
+      "status": {
+        "APPLIED": "Applied",
+        "JOINED": "Joined",
+        "SUBMITTED": "Submitted",
+        "IN_REVIEW": "In Review",
+        "APPROVED": "Approved",
+        "REVISION_REQ": "Revision Requested",
+        "REJECTED": "Rejected",
+        "PAID": "Paid"
+      }
+    },
+    "detail": {
+      "participants": "Participants",
+      "submissions": "Submissions",
+      "approved": "Approved",
+      "totalViews": "Total Views",
+      "budget": "Budget",
+      "spent": "Spent",
+      "remaining": "Remaining",
+      "perClip": "Per Clip",
+      "perView": "Per 1K Views",
+      "noSubmissions": "No submissions yet"
+    },
+    "filter": {
+      "allTypes": "All Types",
+      "allCategories": "All Categories",
+      "budgetRange": "Budget Range"
+    }
+  },
+  "wallet": {
+    "title": "Wallet",
+    "balance": "Balance",
+    "escrowHeld": "Escrow Held",
+    "available": "Available",
+    "totalDeposited": "Total Deposited",
+    "totalWithdrawn": "Total Withdrawn",
+    "totalEarned": "Total Earned",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "depositAmount": "Deposit Amount",
+    "depositPlaceholder": "Enter amount to deposit",
+    "recentTransactions": "Recent Transactions",
+    "noTransactions": "No transactions yet",
+    "transactionType": {
+      "DEPOSIT": "Deposit",
+      "WITHDRAWAL": "Withdrawal",
+      "ESCROW_HOLD": "Escrow Hold",
+      "ESCROW_RELEASE": "Escrow Release",
+      "REWARD_PAYOUT": "Reward Payout",
+      "PLATFORM_FEE": "Platform Fee",
+      "REFUND": "Refund"
+    }
+  },
+  "mySubmissions": {
+    "title": "My Submissions",
+    "noCampaigns": "No active campaign participations",
+    "browseText": "Browse the campaign marketplace to find campaigns to join",
+    "earnings": "Earnings",
+    "totalEarnings": "Total Earnings",
+    "pendingPayments": "Pending Payments",
+    "activeCampaigns": "Active Campaigns",
+    "completedCampaigns": "Completed Campaigns"
   }
 }
