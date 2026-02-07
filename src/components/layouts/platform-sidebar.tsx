@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { useMode } from "@/contexts/mode-context";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -14,32 +15,46 @@ import {
   Megaphone,
   Wallet,
   ClipboardList,
+  Search,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, ns: "common" },
-  { key: "title", href: "/campaigns", icon: Megaphone, ns: "campaigns" },
-  { key: "title", href: "/my-submissions", icon: ClipboardList, ns: "mySubmissions" },
-  { key: "title", href: "/wallet", icon: Wallet, ns: "wallet" },
-  { key: "messages", href: "/messages", icon: MessageSquare, ns: "common" },
-  { key: "analytics", href: "/analytics", icon: BarChart3, ns: "common" },
-  { key: "settings", href: "/settings", icon: Settings, ns: "common" },
+const creatorNav = [
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { key: "myCampaigns", href: "/campaigns", icon: Megaphone },
+  { key: "wallet", href: "/wallet", icon: Wallet },
+  { key: "messages", href: "/messages", icon: MessageSquare },
+  { key: "analytics", href: "/analytics", icon: BarChart3 },
+  { key: "settings", href: "/settings", icon: Settings },
 ] as const;
+
+const clipperNav = [
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { key: "browseCampaigns", href: "/campaigns", icon: Search },
+  { key: "mySubmissions", href: "/my-submissions", icon: ClipboardList },
+  { key: "wallet", href: "/wallet", icon: Wallet },
+  { key: "messages", href: "/messages", icon: MessageSquare },
+  { key: "settings", href: "/settings", icon: Settings },
+] as const;
+
+const NAV_LABELS: Record<string, { ko: string; en: string }> = {
+  dashboard: { ko: "대시보드", en: "Dashboard" },
+  myCampaigns: { ko: "내 캠페인", en: "My Campaigns" },
+  browseCampaigns: { ko: "캠페인 찾기", en: "Find Campaigns" },
+  mySubmissions: { ko: "내 제출 현황", en: "My Submissions" },
+  wallet: { ko: "지갑", en: "Wallet" },
+  messages: { ko: "메시지", en: "Messages" },
+  analytics: { ko: "분석", en: "Analytics" },
+  settings: { ko: "설정", en: "Settings" },
+};
 
 export function PlatformSidebar() {
   const tc = useTranslations("common");
-  const tCamp = useTranslations("campaigns");
-  const tWallet = useTranslations("wallet");
-  const tSub = useTranslations("mySubmissions");
   const pathname = usePathname();
+  const { mode, toggleMode } = useMode();
 
-  function getLabel(ns: string, key: string) {
-    if (ns === "campaigns") return tCamp(key as any);
-    if (ns === "wallet") return tWallet(key as any);
-    if (ns === "mySubmissions") return tSub(key as any);
-    return tc(key as any);
-  }
+  const navItems = mode === "creator" ? creatorNav : clipperNav;
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-background">
@@ -49,13 +64,37 @@ export function PlatformSidebar() {
         <span className="text-lg font-bold">{tc("appName")}</span>
       </div>
 
+      {/* Mode Switcher */}
+      <div className="border-b px-3 py-3">
+        <button
+          onClick={toggleMode}
+          className={cn(
+            "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            "bg-accent hover:bg-accent/80"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white",
+              mode === "creator" ? "bg-violet-600" : "bg-emerald-600"
+            )}>
+              {mode === "creator" ? "C" : "P"}
+            </div>
+            <span>
+              {mode === "creator" ? "크리에이터" : "클리퍼"}
+            </span>
+          </div>
+          <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
+
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
             <Link
-              key={item.href}
+              key={item.key}
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
@@ -65,7 +104,7 @@ export function PlatformSidebar() {
               )}
             >
               <item.icon className="h-5 w-5" />
-              {getLabel(item.ns, item.key)}
+              {NAV_LABELS[item.key]?.ko ?? item.key}
             </Link>
           );
         })}
