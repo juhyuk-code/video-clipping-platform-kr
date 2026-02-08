@@ -24,12 +24,20 @@ export async function GET(
           youtubeChannelName: true,
           subscriberCount: true,
           contentCategories: true,
+          averageVideoViews: true,
+          preferredClipStyle: true,
+          twitchUrl: true,
+          afreecaTvUrl: true,
+          chzzkUrl: true,
+          averageRating: true,
           totalProjectsPosted: true,
         },
       },
       clipperProfile: {
         select: {
           specializations: true,
+          editingTools: true,
+          languages: true,
           tier: true,
           isVerified: true,
           averageRating: true,
@@ -49,9 +57,22 @@ export async function GET(
           },
         },
       },
+      socialConnections: {
+        select: {
+          provider: true,
+          username: true,
+          displayName: true,
+          profileUrl: true,
+          followerCount: true,
+          channelName: true,
+          connectedAt: true,
+        },
+      },
       _count: {
         select: {
           reviewsReceived: true,
+          campaignsCreated: true,
+          submissions: true,
         },
       },
     },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
 import { Link, usePathname } from "@/i18n/routing";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ import {
   ClipboardList,
   Search,
   ArrowLeftRight,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -49,12 +51,26 @@ const NAV_LABELS: Record<string, { ko: string; en: string }> = {
   settings: { ko: "설정", en: "Settings" },
 };
 
+function getInitials(name?: string | null, email?: string | null): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+  if (email) return email[0].toUpperCase();
+  return "U";
+}
+
 export function PlatformSidebar() {
   const tc = useTranslations("common");
   const pathname = usePathname();
   const { mode, toggleMode } = useMode();
+  const { data: session } = useSession();
 
   const navItems = mode === "creator" ? creatorNav : clipperNav;
+  const userName = session?.user?.name;
+  const userEmail = session?.user?.email;
+  const initials = getInitials(userName, userEmail);
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-background">
@@ -110,8 +126,26 @@ export function PlatformSidebar() {
         })}
       </nav>
 
-      {/* Bottom */}
-      <div className="border-t p-3">
+      {/* User Card + Logout */}
+      <div className="border-t p-3 space-y-2">
+        {session?.user && (
+          <Link
+            href="/settings"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-accent"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">
+                {userName || "사용자"}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {userEmail}
+              </p>
+            </div>
+          </Link>
+        )}
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground"

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { apiResponse, apiError, requireAuth, parseBody } from "@/lib/api/helpers";
 import { updateUserProfileSchema } from "@/lib/validations";
 
-// GET /api/v1/users/me — get current user profile
+// GET /api/v1/users/me — get current user profile (full, private)
 export async function GET() {
   const user = await requireAuth();
   if (!user) return apiError("Unauthorized", 401);
@@ -13,11 +13,28 @@ export async function GET() {
     include: {
       creatorProfile: true,
       clipperProfile: { include: { portfolioItems: true } },
+      accounts: { select: { provider: true } },
+      socialConnections: {
+        select: {
+          id: true,
+          provider: true,
+          username: true,
+          displayName: true,
+          profileUrl: true,
+          followerCount: true,
+          channelName: true,
+          connectedAt: true,
+          lastSyncedAt: true,
+          _count: { select: { videos: true } },
+        },
+      },
       _count: {
         select: {
           projectsAsCreator: true,
           projectsAsClipper: true,
           reviewsReceived: true,
+          campaignsCreated: true,
+          submissions: true,
         },
       },
     },
@@ -28,7 +45,7 @@ export async function GET() {
   return apiResponse(fullUser);
 }
 
-// PUT /api/v1/users/me — update current user profile
+// PUT /api/v1/users/me — update current user base profile
 export async function PUT(req: NextRequest) {
   const user = await requireAuth();
   if (!user) return apiError("Unauthorized", 401);
