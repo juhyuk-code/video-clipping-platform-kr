@@ -245,12 +245,12 @@ export default async function PublicProfilePage({
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        {isCreator && cp && (
+        {isCreator && (
           <>
             <Card>
               <CardContent className="pt-4 text-center">
                 <p className="text-2xl font-bold flex items-center justify-center gap-1">
-                  {cp.averageRating ? (
+                  {cp?.averageRating ? (
                     <><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />{cp.averageRating.toFixed(1)}</>
                   ) : "-"}
                 </p>
@@ -259,7 +259,7 @@ export default async function PublicProfilePage({
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold">{cp.totalProjectsPosted}</p>
+                <p className="text-2xl font-bold">{cp?.totalProjectsPosted ?? 0}</p>
                 <p className="text-xs text-muted-foreground">등록 캠페인</p>
               </CardContent>
             </Card>
@@ -271,12 +271,12 @@ export default async function PublicProfilePage({
             </Card>
           </>
         )}
-        {isClipper && kp && (
+        {isClipper && (
           <>
             <Card>
               <CardContent className="pt-4 text-center">
                 <p className="text-2xl font-bold flex items-center justify-center gap-1">
-                  {kp.averageRating ? (
+                  {kp?.averageRating ? (
                     <><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />{kp.averageRating.toFixed(1)}</>
                   ) : "-"}
                 </p>
@@ -285,7 +285,7 @@ export default async function PublicProfilePage({
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold">{kp.totalProjectsCompleted}</p>
+                <p className="text-2xl font-bold">{kp?.totalProjectsCompleted ?? 0}</p>
                 <p className="text-xs text-muted-foreground">완료 캠페인</p>
               </CardContent>
             </Card>
@@ -298,6 +298,38 @@ export default async function PublicProfilePage({
           </>
         )}
       </div>
+
+      {/* Empty state when no profile details filled in */}
+      {isClipper && !kp && user.socialConnections.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">아직 프로필 정보가 없습니다</p>
+            {isOwnProfile && (
+              <Link
+                href="/settings"
+                className="mt-2 inline-block text-sm text-primary hover:underline"
+              >
+                설정에서 프로필을 완성해보세요
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      {isCreator && !cp && user.socialConnections.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">아직 프로필 정보가 없습니다</p>
+            {isOwnProfile && (
+              <Link
+                href="/settings"
+                className="mt-2 inline-block text-sm text-primary hover:underline"
+              >
+                설정에서 프로필을 완성해보세요
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* === CLIPPER-SPECIFIC SECTIONS === */}
 
