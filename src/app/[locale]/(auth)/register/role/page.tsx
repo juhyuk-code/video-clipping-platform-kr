@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/routing";
+import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,8 +21,6 @@ type Role = "CREATOR" | "CLIPPER";
 export default function OnboardingPage() {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
-  const router = useRouter();
-
   const [step, setStep] = useState(1);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [nickname, setNickname] = useState("");
@@ -72,7 +70,9 @@ export default function OnboardingPage() {
       }
       // Set initial mode to match chosen role
       localStorage.setItem("platform-mode", selectedRole.toLowerCase());
-      router.push("/dashboard");
+      // Hard navigation to bypass Next.js Router Cache —
+      // the server layout needs a fresh render to see the new nickname
+      window.location.href = "/dashboard";
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
     } finally {
