@@ -17,8 +17,6 @@ import {
   Wallet,
   ClipboardList,
   Search,
-  ArrowLeftRight,
-  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -64,7 +62,7 @@ function getInitials(name?: string | null, email?: string | null): string {
 export function PlatformSidebar() {
   const tc = useTranslations("common");
   const pathname = usePathname();
-  const { mode, toggleMode } = useMode();
+  const { mode } = useMode();
   const { data: session } = useSession();
 
   const navItems = mode === "creator" ? creatorNav : clipperNav;
@@ -80,28 +78,19 @@ export function PlatformSidebar() {
         <span className="text-lg font-bold">{tc("appName")}</span>
       </div>
 
-      {/* Mode Switcher */}
+      {/* Role Indicator */}
       <div className="border-b px-3 py-3">
-        <button
-          onClick={toggleMode}
-          className={cn(
-            "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-            "bg-accent hover:bg-accent/80"
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white",
-              mode === "creator" ? "bg-violet-600" : "bg-emerald-600"
-            )}>
-              {mode === "creator" ? "C" : "P"}
-            </div>
-            <span>
-              {mode === "creator" ? "크리에이터" : "클리퍼"}
-            </span>
+        <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium bg-accent">
+          <div className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white",
+            mode === "creator" ? "bg-violet-600" : "bg-emerald-600"
+          )}>
+            {mode === "creator" ? "C" : "P"}
           </div>
-          <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
-        </button>
+          <span>
+            {mode === "creator" ? "크리에이터" : "클리퍼"}
+          </span>
+        </div>
       </div>
 
       {/* Navigation */}
