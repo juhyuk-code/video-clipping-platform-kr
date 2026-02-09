@@ -430,10 +430,10 @@ export default function SettingsPage() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
-              {getInitials(profile?.nickname || profile?.name, profile?.email)}
+              {getInitials(profile?.nickname, profile?.email)}
             </div>
             <div>
-              <h2 className="text-lg font-semibold">{profile?.nickname || profile?.name || "사용자"}</h2>
+              <h2 className="text-lg font-semibold">{profile?.nickname || "사용자"}</h2>
               <p className="text-sm text-muted-foreground">{profile?.email}</p>
               <div className="mt-1 flex gap-2">
                 <Badge variant="outline">{profile?.role === "CREATOR" ? "크리에이터" : "클리퍼"}</Badge>
@@ -454,6 +454,20 @@ export default function SettingsPage() {
             <CardDescription>공개 프로필에 표시되는 기본 정보입니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Real name from OAuth — read-only, private to account owner */}
+            {profile?.name && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">실명</label>
+                <Input
+                  value={profile.name}
+                  disabled
+                  className="bg-muted text-muted-foreground"
+                />
+                <p className="text-xs text-muted-foreground">
+                  소셜 로그인에서 가져온 이름입니다. 본인만 볼 수 있으며 변경할 수 없습니다.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">닉네임</label>
               <Input
@@ -462,6 +476,9 @@ export default function SettingsPage() {
                 placeholder="닉네임을 입력하세요"
                 maxLength={50}
               />
+              <p className="text-xs text-muted-foreground">
+                공개 프로필에 표시되는 이름입니다.
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">소개</label>

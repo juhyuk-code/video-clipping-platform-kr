@@ -58,7 +58,8 @@ export function PlatformHeader() {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   }
 
-  const initials = getInitials(session?.user?.name, session?.user?.email);
+  const displayName = session?.user?.nickname || null;
+  const initials = getInitials(displayName, session?.user?.email);
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 border-b bg-background/95 px-6 backdrop-blur">
@@ -136,7 +137,7 @@ export function PlatformHeader() {
           {showUserMenu && (
             <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border bg-background shadow-lg">
               <div className="border-b p-3">
-                <p className="text-sm font-medium">{session.user.name || "사용자"}</p>
+                <p className="text-sm font-medium">{displayName || "사용자"}</p>
                 <p className="text-xs text-muted-foreground">{session.user.email}</p>
               </div>
               <div className="p-1">

@@ -49,7 +49,6 @@ export default async function PublicProfilePage({
       where: { id },
       select: {
         id: true,
-        name: true,
         nickname: true,
         role: true,
         bio: true,
@@ -115,7 +114,7 @@ export default async function PublicProfilePage({
     try {
       user = await prisma.user.findUnique({
         where: { id },
-        select: { id: true, name: true, nickname: true, role: true, bio: true, createdAt: true },
+        select: { id: true, nickname: true, role: true, bio: true, createdAt: true },
       });
     } catch {
       user = null;
@@ -132,7 +131,7 @@ export default async function PublicProfilePage({
 
   const session = await auth();
   const isOwnProfile = session?.user?.id === user.id;
-  const displayName = user.nickname || user.name || "사용자";
+  const displayName = user.nickname || "사용자";
   const cp = user.creatorProfile;
   const kp = user.clipperProfile;
 

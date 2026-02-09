@@ -68,9 +68,9 @@ export function PlatformSidebar() {
   const { data: session } = useSession();
 
   const navItems = mode === "creator" ? creatorNav : clipperNav;
-  const userName = session?.user?.name;
+  const displayName = session?.user?.nickname || null;
   const userEmail = session?.user?.email;
-  const initials = getInitials(userName, userEmail);
+  const initials = getInitials(displayName, userEmail);
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-background">
@@ -138,7 +138,7 @@ export function PlatformSidebar() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">
-                {userName || "사용자"}
+                {displayName || "사용자"}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {userEmail}
