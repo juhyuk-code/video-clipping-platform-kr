@@ -39,14 +39,58 @@ export default async function SubmissionDetailPage({
           name: true,
           image: true,
           bio: true,
+          role: true,
+          createdAt: true,
           clipperProfile: {
             select: {
               editingTools: true,
               specializations: true,
               languages: true,
               tier: true,
+              isVerified: true,
               averageRating: true,
               totalProjectsCompleted: true,
+              portfolioItems: {
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  videoUrl: true,
+                  thumbnailUrl: true,
+                  platform: true,
+                  viewCount: true,
+                },
+                take: 12,
+                orderBy: { createdAt: "desc" },
+              },
+            },
+          },
+          creatorProfile: {
+            select: {
+              youtubeChannelName: true,
+              subscriberCount: true,
+              contentCategories: true,
+              preferredClipStyle: true,
+              twitchUrl: true,
+              afreecaTvUrl: true,
+              chzzkUrl: true,
+              averageRating: true,
+              totalProjectsPosted: true,
+            },
+          },
+          socialConnections: {
+            select: {
+              provider: true,
+              username: true,
+              displayName: true,
+              profileUrl: true,
+              followerCount: true,
+              channelName: true,
+            },
+          },
+          _count: {
+            select: {
+              reviewsReceived: true,
             },
           },
         },
@@ -100,7 +144,40 @@ export default async function SubmissionDetailPage({
       name: submission.clipper.name,
       image: submission.clipper.image,
       bio: submission.clipper.bio,
-      clipperProfile: submission.clipper.clipperProfile,
+      clipperProfile: submission.clipper.clipperProfile
+        ? {
+            ...submission.clipper.clipperProfile,
+            averageRating: submission.clipper.clipperProfile.averageRating
+              ? Number(submission.clipper.clipperProfile.averageRating)
+              : null,
+          }
+        : null,
+    },
+    clipperProfile: {
+      id: submission.clipper.id,
+      nickname: submission.clipper.nickname,
+      role: submission.clipper.role,
+      bio: submission.clipper.bio,
+      image: submission.clipper.image,
+      createdAt: submission.clipper.createdAt.toISOString(),
+      creatorProfile: submission.clipper.creatorProfile
+        ? {
+            ...submission.clipper.creatorProfile,
+            averageRating: submission.clipper.creatorProfile.averageRating
+              ? Number(submission.clipper.creatorProfile.averageRating)
+              : null,
+          }
+        : null,
+      clipperProfile: submission.clipper.clipperProfile
+        ? {
+            ...submission.clipper.clipperProfile,
+            averageRating: submission.clipper.clipperProfile.averageRating
+              ? Number(submission.clipper.clipperProfile.averageRating)
+              : null,
+          }
+        : null,
+      socialConnections: submission.clipper.socialConnections,
+      _count: submission.clipper._count,
     },
     snapshots: submission.snapshots.map((s) => ({
       viewCount: s.viewCount,
