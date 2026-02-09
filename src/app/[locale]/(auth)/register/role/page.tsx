@@ -13,7 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Video, Scissors, ArrowLeft, Loader2 } from "lucide-react";
+import { Video, Scissors, ArrowLeft, Loader2, Check, X } from "lucide-react";
+import { useNicknameCheck } from "@/hooks/use-nickname-check";
 
 type Role = "CREATOR" | "CLIPPER";
 
@@ -28,6 +29,7 @@ export default function OnboardingPage() {
   const [bio, setBio] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const nicknameCheck = useNicknameCheck(nickname);
 
   const roles = [
     {
@@ -163,16 +165,41 @@ export default function OnboardingPage() {
                 <label className="text-sm font-medium">
                   닉네임 <span className="text-destructive">*</span>
                 </label>
-                <Input
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="닉네임을 입력하세요"
-                  maxLength={50}
-                  autoFocus
-                />
-                <p className="text-xs text-muted-foreground">
-                  공개 프로필에 표시되는 이름입니다. 나중에 설정에서 변경할 수 있습니다.
-                </p>
+                <div className="relative">
+                  <Input
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="닉네임을 입력하세요"
+                    maxLength={50}
+                    autoFocus
+                    className={
+                      nicknameCheck.status === "available" ? "border-green-500 pr-9" :
+                      nicknameCheck.status === "taken" || nicknameCheck.status === "invalid" ? "border-destructive pr-9" :
+                      ""
+                    }
+                  />
+                  {nicknameCheck.status === "checking" && (
+                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  )}
+                  {nicknameCheck.status === "available" && (
+                    <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-500" />
+                  )}
+                  {(nicknameCheck.status === "taken" || nicknameCheck.status === "invalid") && (
+                    <X className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-destructive" />
+                  )}
+                </div>
+                {nicknameCheck.message && (
+                  <p className={`text-xs ${
+                    nicknameCheck.status === "available" ? "text-green-600" : "text-destructive"
+                  }`}>
+                    {nicknameCheck.message}
+                  </p>
+                )}
+                {!nicknameCheck.message && (
+                  <p className="text-xs text-muted-foreground">
+                    공개 프로필에 표시되는 이름입니다. 나중에 설정에서 변경할 수 있습니다.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">소개</label>
@@ -201,7 +228,7 @@ export default function OnboardingPage() {
                 <Button
                   size="lg"
                   className="flex-1"
-                  disabled={!nickname.trim() || submitting}
+                  disabled={!nickname.trim() || submitting || nicknameCheck.status === "taken" || nicknameCheck.status === "invalid" || nicknameCheck.status === "checking"}
                   onClick={handleComplete}
                 >
                   {submitting ? (

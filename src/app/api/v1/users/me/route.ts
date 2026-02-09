@@ -91,6 +91,18 @@ export async function PUT(req: NextRequest) {
 
   const data = result.data;
 
+  // Check nickname uniqueness (case-insensitive) before saving
+  if (data.nickname) {
+    const existing = await prisma.user.findFirst({
+      where: {
+        nickname: { equals: data.nickname, mode: "insensitive" },
+        id: { not: user.id },
+      },
+      select: { id: true },
+    });
+    if (existing) return apiError("이미 사용 중인 닉네임입니다.", 409);
+  }
+
   const updated = await prisma.user.update({
     where: { id: user.id },
     data,
