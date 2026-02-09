@@ -97,15 +97,6 @@ export default function LoginPage() {
               {t("continueWithGoogle")}
             </Button>
 
-            <Button
-              className="w-full gap-3 bg-black text-white hover:bg-black/90"
-              size="lg"
-              onClick={() => signIn("twitter", { callbackUrl: "/dashboard" })}
-            >
-              <XIcon />
-              {t("continueWithX")}
-            </Button>
-
             <p className="mt-4 text-center text-sm text-muted-foreground">
               {t("dontHaveAccount")}{" "}
               <Link href="/login" className="font-medium text-primary hover:underline">

@@ -101,7 +101,6 @@ const LOGIN_PROVIDERS: Record<string, { label: string; color: string }> = {
   kakao: { label: "카카오", color: "bg-yellow-400 text-yellow-900" },
   naver: { label: "네이버", color: "bg-green-500 text-white" },
   google: { label: "Google", color: "bg-blue-500 text-white" },
-  twitter: { label: "X", color: "bg-black text-white" },
 };
 
 function TikTokIcon({ className }: { className?: string }) {
