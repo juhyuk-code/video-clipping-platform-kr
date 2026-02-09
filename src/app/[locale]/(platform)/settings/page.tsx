@@ -214,6 +214,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Base fields
+  const [realName, setRealName] = useState("");
   const [nickname, setNickname] = useState("");
   const [bio, setBio] = useState("");
   const [language, setLanguage] = useState("KO");
@@ -242,6 +243,7 @@ export default function SettingsPage() {
       const data = await res.json();
       setProfile(data);
 
+      setRealName(data.name || "");
       setNickname(data.nickname || "");
       setBio(data.bio || "");
       setLanguage(data.preferredLanguage || "KO");
