@@ -282,18 +282,18 @@ export function ProfileFull({ profile }: { profile: ProfileData }) {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        {isClipper && kp && (
+        {isClipper && (
           <>
             <div className="rounded-lg border p-3 text-center">
               <p className="text-lg font-bold flex items-center justify-center gap-1">
-                {kp.averageRating ? (
+                {kp?.averageRating ? (
                   <><Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />{kp.averageRating.toFixed(1)}</>
                 ) : "-"}
               </p>
               <p className="text-xs text-muted-foreground">평균 평점</p>
             </div>
             <div className="rounded-lg border p-3 text-center">
-              <p className="text-lg font-bold">{kp.totalProjectsCompleted}</p>
+              <p className="text-lg font-bold">{kp?.totalProjectsCompleted ?? 0}</p>
               <p className="text-xs text-muted-foreground">완료 캠페인</p>
             </div>
             <div className="rounded-lg border p-3 text-center">
@@ -302,18 +302,18 @@ export function ProfileFull({ profile }: { profile: ProfileData }) {
             </div>
           </>
         )}
-        {isCreator && cp && (
+        {isCreator && (
           <>
             <div className="rounded-lg border p-3 text-center">
               <p className="text-lg font-bold flex items-center justify-center gap-1">
-                {cp.averageRating ? (
+                {cp?.averageRating ? (
                   <><Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />{cp.averageRating.toFixed(1)}</>
                 ) : "-"}
               </p>
               <p className="text-xs text-muted-foreground">평균 평점</p>
             </div>
             <div className="rounded-lg border p-3 text-center">
-              <p className="text-lg font-bold">{cp.totalProjectsPosted}</p>
+              <p className="text-lg font-bold">{cp?.totalProjectsPosted ?? 0}</p>
               <p className="text-xs text-muted-foreground">등록 캠페인</p>
             </div>
             <div className="rounded-lg border p-3 text-center">
