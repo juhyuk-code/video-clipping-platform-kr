@@ -214,7 +214,6 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Base fields
-  const [realName, setRealName] = useState("");
   const [nickname, setNickname] = useState("");
   const [bio, setBio] = useState("");
   const [language, setLanguage] = useState("KO");
@@ -243,7 +242,6 @@ export default function SettingsPage() {
       const data = await res.json();
       setProfile(data);
 
-      setRealName(data.name || "");
       setNickname(data.nickname || "");
       setBio(data.bio || "");
       setLanguage(data.preferredLanguage || "KO");
@@ -458,19 +456,6 @@ export default function SettingsPage() {
             <CardDescription>공개 프로필에 표시되는 기본 정보입니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Real name from OAuth — read-only, private to account owner */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">실명</label>
-              <Input
-                value={profile?.name || ""}
-                disabled
-                placeholder="소셜 로그인에서 제공되지 않음"
-                className="bg-muted text-muted-foreground"
-              />
-              <p className="text-xs text-muted-foreground">
-                소셜 로그인에서 가져온 이름입니다. 본인만 볼 수 있으며 변경할 수 없습니다.
-              </p>
-            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">닉네임</label>
               <Input
