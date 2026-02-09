@@ -16,7 +16,6 @@ export async function GET(
       where: { id },
       select: {
         id: true,
-        name: true,
         nickname: true,
         image: true,
         role: true,
@@ -87,7 +86,6 @@ export async function GET(
         where: { id },
         select: {
           id: true,
-          name: true,
           nickname: true,
           image: true,
           role: true,
