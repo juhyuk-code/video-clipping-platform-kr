@@ -21,7 +21,25 @@ export async function GET(
           creator: { select: { id: true, nickname: true, name: true, image: true } },
         },
       },
-      clipper: { select: { id: true, nickname: true, name: true, image: true } },
+      clipper: {
+        select: {
+          id: true,
+          nickname: true,
+          name: true,
+          image: true,
+          bio: true,
+          clipperProfile: {
+            select: {
+              editingTools: true,
+              specializations: true,
+              languages: true,
+              tier: true,
+              averageRating: true,
+              totalProjectsCompleted: true,
+            },
+          },
+        },
+      },
       snapshots: { orderBy: { capturedAt: "desc" }, take: 10 },
       fraudCheck: true,
     },

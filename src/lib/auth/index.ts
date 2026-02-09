@@ -29,6 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = user.id;
         // Pass nickname through so client components can show it
         session.user.nickname = (user as any).nickname ?? null;
+        session.user.role = (user as any).role ?? null;
       }
       return session;
     },

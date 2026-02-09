@@ -101,7 +101,9 @@ export function MessageThread({ projectId, projectTitle, currentUserId }: Messag
               <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[70%] rounded-lg px-3 py-2 ${isMine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                   {!isMine && (
-                    <p className="mb-1 text-xs font-medium">{msg.sender.nickname ?? msg.sender.name}</p>
+                    <a href={`/profile/${msg.sender.id}`} className="mb-1 block text-xs font-medium hover:underline">
+                      {msg.sender.nickname ?? msg.sender.name}
+                    </a>
                   )}
                   <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                   <p className={`mt-1 text-xs ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
