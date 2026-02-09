@@ -206,7 +206,7 @@ function getInitials(name?: string | null, email?: string | null): string {
 export default function SettingsPage() {
   const tc = useTranslations("common");
   const { mode } = useMode();
-  useSession(); // ensure session is available
+  const { update: updateSession } = useSession();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -300,6 +300,8 @@ export default function SettingsPage() {
       if (res.ok) {
         setMessage({ type: "success", text: "프로필이 저장되었습니다." });
         fetchProfile();
+        // Refresh the Auth.js session so sidebar/header pick up the new nickname
+        await updateSession();
       } else {
         const d = await res.json().catch(() => ({}));
         setMessage({ type: "error", text: d.error || "저장에 실패했습니다." });
@@ -455,19 +457,18 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Real name from OAuth — read-only, private to account owner */}
-            {profile?.name && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">실명</label>
-                <Input
-                  value={profile.name}
-                  disabled
-                  className="bg-muted text-muted-foreground"
-                />
-                <p className="text-xs text-muted-foreground">
-                  소셜 로그인에서 가져온 이름입니다. 본인만 볼 수 있으며 변경할 수 없습니다.
-                </p>
-              </div>
-            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">실명</label>
+              <Input
+                value={profile?.name || ""}
+                disabled
+                placeholder="소셜 로그인에서 제공되지 않음"
+                className="bg-muted text-muted-foreground"
+              />
+              <p className="text-xs text-muted-foreground">
+                소셜 로그인에서 가져온 이름입니다. 본인만 볼 수 있으며 변경할 수 없습니다.
+              </p>
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">닉네임</label>
               <Input
