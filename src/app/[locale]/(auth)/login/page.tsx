@@ -80,15 +80,6 @@ export default function LoginPage() {
             </Button>
 
             <Button
-              className="w-full gap-3 bg-[#03C75A] text-white hover:bg-[#03C75A]/90"
-              size="lg"
-              onClick={() => signIn("naver", { callbackUrl: "/dashboard" })}
-            >
-              <NaverIcon />
-              {t("continueWithNaver")}
-            </Button>
-
-            <Button
               variant="outline"
               className="w-full gap-3"
               size="lg"
