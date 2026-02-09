@@ -356,7 +356,9 @@ function SubmissionReviewCard({
   }
 
   return (
-    <div className="rounded-lg border p-4 space-y-3">
+    <div className="rounded-lg border p-4 space-y-3 cursor-pointer transition-colors hover:bg-muted/50"
+      onClick={() => router.push(`/campaigns/${campaignId}/submissions/${sub.id}`)}
+    >
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="font-medium">
@@ -408,7 +410,7 @@ function SubmissionReviewCard({
 
       {/* Review actions for SUBMITTED / IN_REVIEW submissions */}
       {canReview && !showRevisionForm && (
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
             className="gap-1"
@@ -443,7 +445,7 @@ function SubmissionReviewCard({
 
       {/* Revision / rejection notes form */}
       {canReview && showRevisionForm && (
-        <div className="space-y-2 pt-1">
+        <div className="space-y-2 pt-1" onClick={(e) => e.stopPropagation()}>
           <Textarea
             value={revisionNotes}
             onChange={(e) => setRevisionNotes(e.target.value)}
