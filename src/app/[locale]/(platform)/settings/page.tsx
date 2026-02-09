@@ -15,9 +15,11 @@ import {
   Loader2,
   RefreshCw,
   Unlink,
+  X,
   Youtube,
   Instagram,
 } from "lucide-react";
+import { useNicknameCheck } from "@/hooks/use-nickname-check";
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -215,8 +217,14 @@ export default function SettingsPage() {
 
   // Base fields
   const [nickname, setNickname] = useState("");
+  const [savedNickname, setSavedNickname] = useState("");
   const [bio, setBio] = useState("");
   const [language, setLanguage] = useState("KO");
+
+  // Only check availability when nickname differs from what's saved
+  const nicknameCheck = useNicknameCheck(
+    nickname.trim() !== savedNickname ? nickname : ""
+  );
 
   // Creator fields
   const [contentCategories, setContentCategories] = useState<string[]>([]);
@@ -243,6 +251,7 @@ export default function SettingsPage() {
       setProfile(data);
 
       setNickname(data.nickname || "");
+      setSavedNickname(data.nickname || "");
       setBio(data.bio || "");
       setLanguage(data.preferredLanguage || "KO");
 
@@ -458,15 +467,37 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">닉네임</label>
-              <Input
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="닉네임을 입력하세요"
-                maxLength={50}
-              />
-              <p className="text-xs text-muted-foreground">
-                공개 프로필에 표시되는 이름입니다.
-              </p>
+              <div className="relative">
+                <Input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="닉네임을 입력하세요"
+                  maxLength={50}
+                  className={
+                    nicknameCheck.status === "available" ? "border-green-500 pr-9" :
+                    nicknameCheck.status === "taken" || nicknameCheck.status === "invalid" ? "border-destructive pr-9" :
+                    ""
+                  }
+                />
+                {nicknameCheck.status === "checking" && (
+                  <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                )}
+                {nicknameCheck.status === "available" && (
+                  <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-500" />
+                )}
+                {(nicknameCheck.status === "taken" || nicknameCheck.status === "invalid") && (
+                  <X className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-destructive" />
+                )}
+              </div>
+              {nicknameCheck.message ? (
+                <p className={`text-xs ${nicknameCheck.status === "available" ? "text-green-600" : "text-destructive"}`}>
+                  {nicknameCheck.message}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  공개 프로필에 표시되는 이름입니다.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">소개</label>
@@ -490,7 +521,7 @@ export default function SettingsPage() {
                 <option value="EN">English</option>
               </select>
             </div>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || nicknameCheck.status === "taken" || nicknameCheck.status === "invalid" || nicknameCheck.status === "checking"}>
               {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 저장 중...</> : tc("save")}
             </Button>
           </CardContent>
