@@ -102,6 +102,7 @@ interface CampaignData {
   type: string;
   status: string;
   createdAt: string;
+  creatorId: string;
   creatorName: string;
   isOwner: boolean;
   participantCount: number;
@@ -142,7 +143,10 @@ export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
             <Badge variant={STATUS_COLORS[campaign.status]}>{STATUS_LABELS[campaign.status]}</Badge>
           </div>
           <p className="text-muted-foreground">
-            {campaign.creatorName} &middot; {new Date(campaign.createdAt).toLocaleDateString("ko-KR")}
+            <a href={`/profile/${campaign.creatorId}`} className="hover:underline hover:text-foreground transition-colors">
+              {campaign.creatorName}
+            </a>
+            {" "}&middot; {new Date(campaign.createdAt).toLocaleDateString("ko-KR")}
           </p>
         </div>
       </div>
@@ -361,9 +365,13 @@ function SubmissionReviewCard({
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <p className="font-medium">
+          <a
+            href={`/profile/${sub.clipper.id}`}
+            className="font-medium hover:underline hover:text-primary transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
             {sub.clipper.nickname ?? sub.clipper.name}
-          </p>
+          </a>
           {sub.clipTitle && (
             <p className="text-sm text-muted-foreground">{sub.clipTitle}</p>
           )}

@@ -149,7 +149,14 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold">
-            {sub.isCreator ? `${clipperName}의 지원서` : "내 지원 현황"}
+            {sub.isCreator ? (
+              <>
+                <a href={`/profile/${sub.clipper.id}`} className="hover:underline hover:text-primary transition-colors">
+                  {clipperName}
+                </a>
+                의 지원서
+              </>
+            ) : "내 지원 현황"}
           </h1>
           <p className="text-muted-foreground">
             {sub.campaign.title}

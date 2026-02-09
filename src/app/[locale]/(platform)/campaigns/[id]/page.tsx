@@ -45,6 +45,7 @@ export default async function CampaignDetailPage({
     type: campaign.type,
     status: campaign.status,
     createdAt: campaign.createdAt.toISOString(),
+    creatorId: campaign.creator.id,
     creatorName: campaign.creator.nickname ?? campaign.creator.name ?? "Unknown",
     isOwner: userId === campaign.creatorId,
     participantCount: campaign.participantCount,

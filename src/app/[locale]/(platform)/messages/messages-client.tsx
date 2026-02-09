@@ -9,6 +9,7 @@ import { MessageThread } from "@/components/messages/message-thread";
 interface Conversation {
   projectId: string;
   projectTitle: string;
+  otherUserId: string;
   otherUserName: string;
   lastMessage: string;
   lastMessageAt: string;
@@ -61,7 +62,17 @@ export function MessagesClient({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-sm">{convo.projectTitle}</p>
-                    <p className="text-xs text-muted-foreground">{convo.otherUserName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {convo.otherUserId ? (
+                        <a
+                          href={`/profile/${convo.otherUserId}`}
+                          className="hover:underline hover:text-foreground transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {convo.otherUserName}
+                        </a>
+                      ) : convo.otherUserName}
+                    </p>
                     {convo.lastMessage && (
                       <p className="mt-1 truncate text-xs text-muted-foreground">
                         {convo.lastMessage}

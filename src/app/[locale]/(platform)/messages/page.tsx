@@ -7,6 +7,7 @@ import { MessagesClient } from "./messages-client";
 interface Conversation {
   projectId: string;
   projectTitle: string;
+  otherUserId: string;
   otherUserName: string;
   lastMessage: string;
   lastMessageAt: string;
@@ -27,8 +28,8 @@ async function getConversations(userId: string): Promise<Conversation[]> {
       id: true,
       title: true,
       creatorId: true,
-      creator: { select: { nickname: true, name: true } },
-      assignedClipper: { select: { nickname: true, name: true } },
+      creator: { select: { id: true, nickname: true, name: true } },
+      assignedClipper: { select: { id: true, nickname: true, name: true } },
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -50,6 +51,7 @@ async function getConversations(userId: string): Promise<Conversation[]> {
     return {
       projectId: p.id,
       projectTitle: p.title,
+      otherUserId: otherUser?.id ?? "",
       otherUserName: otherUser?.nickname ?? otherUser?.name ?? "사용자",
       lastMessage: lastMsg?.content ?? "",
       lastMessageAt: lastMsg?.createdAt?.toISOString() ?? "",
