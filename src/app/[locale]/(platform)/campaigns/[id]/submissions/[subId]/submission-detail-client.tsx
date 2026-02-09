@@ -12,20 +12,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  User,
   Eye,
   Calendar,
   ExternalLink,
   ThumbsUp,
   ThumbsDown,
   RotateCcw,
-  Star,
-  Briefcase,
   Film,
   Wallet,
   AlertCircle,
 } from "lucide-react";
 import { formatKRW } from "@/lib/utils";
+import { Sheet } from "@/components/ui/sheet";
+import { ProfileSummary, ProfileFull, type ProfileData } from "@/components/profile/profile-content";
 
 const STATUS_LABELS: Record<string, string> = {
   APPLIED: "지원 중",
@@ -95,6 +94,7 @@ interface SubmissionData {
       totalProjectsCompleted: number;
     } | null;
   };
+  clipperProfile: ProfileData;
   snapshots: {
     viewCount: number;
     capturedAt: string;
@@ -109,10 +109,10 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   const [error, setError] = useState<string | null>(null);
   const [showRevisionForm, setShowRevisionForm] = useState(false);
   const [revisionNotes, setRevisionNotes] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const canReview = sub.isCreator && ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
   const clipperName = sub.clipper.nickname ?? sub.clipper.name ?? "사용자";
-  const profile = sub.clipper.clipperProfile;
 
   async function handleReview(status: "APPROVED" | "REVISION_REQ" | "REJECTED") {
     setLoading(true);
@@ -145,15 +145,27 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
 
   return (
     <>
+      {/* Profile Sheet */}
+      <Sheet
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        title={`${clipperName}의 프로필`}
+      >
+        <ProfileFull profile={sub.clipperProfile} />
+      </Sheet>
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold">
             {sub.isCreator ? (
               <>
-                <a href={`/profile/${sub.clipper.id}`} className="hover:underline hover:text-primary transition-colors">
+                <button
+                  onClick={() => setProfileOpen(true)}
+                  className="hover:underline hover:text-primary transition-colors"
+                >
                   {clipperName}
-                </a>
+                </button>
                 의 지원서
               </>
             ) : "내 지원 현황"}
@@ -401,58 +413,11 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Clipper profile — compact card linking to full public profile */}
-          <a href={`/profile/${sub.clipper.id}`} className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  클리퍼 정보
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3">
-                  {sub.clipper.image ? (
-                    <img
-                      src={sub.clipper.image}
-                      alt={clipperName}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-                      {clipperName.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="font-medium">{clipperName}</p>
-                    {sub.clipper.bio && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{sub.clipper.bio}</p>
-                    )}
-                  </div>
-                </div>
-
-                {profile && (
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    {profile.averageRating != null && profile.averageRating > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-3.5 w-3.5 text-yellow-500" />
-                        {profile.averageRating.toFixed(1)}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Briefcase className="h-3.5 w-3.5" />
-                      {profile.totalProjectsCompleted}건 완료
-                    </span>
-                    {profile.tier && profile.tier !== "BRONZE" && (
-                      <Badge variant="secondary" className="text-xs">{profile.tier}</Badge>
-                    )}
-                  </div>
-                )}
-
-                <p className="text-xs text-primary">프로필 보기 &rarr;</p>
-              </CardContent>
-            </Card>
-          </a>
+          {/* Clipper profile — summary with expand */}
+          <ProfileSummary
+            profile={sub.clipperProfile}
+            onExpand={() => setProfileOpen(true)}
+          />
 
           {/* Campaign reward info */}
           <Card>
