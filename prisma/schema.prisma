@@ -511,6 +511,7 @@ enum SocialProvider {
   YOUTUBE
   INSTAGRAM
   TIKTOK
+  TWITTER
 }
 
 model SocialConnection {
