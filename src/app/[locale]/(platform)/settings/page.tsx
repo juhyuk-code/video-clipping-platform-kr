@@ -297,8 +297,10 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nickname: nickname || undefined, bio: bio || undefined, preferredLanguage: language }),
       });
-      if (res.ok) setMessage({ type: "success", text: "프로필이 저장되었습니다." });
-      else {
+      if (res.ok) {
+        setMessage({ type: "success", text: "프로필이 저장되었습니다." });
+        fetchProfile();
+      } else {
         const d = await res.json().catch(() => ({}));
         setMessage({ type: "error", text: d.error || "저장에 실패했습니다." });
       }
@@ -325,8 +327,10 @@ export default function SettingsPage() {
           chzzkUrl: chzzkUrl || null,
         }),
       });
-      if (res.ok) setMessage({ type: "success", text: "크리에이터 프로필이 저장되었습니다." });
-      else {
+      if (res.ok) {
+        setMessage({ type: "success", text: "크리에이터 프로필이 저장되었습니다." });
+        fetchProfile();
+      } else {
         const d = await res.json().catch(() => ({}));
         setMessage({ type: "error", text: d.error || "저장에 실패했습니다." });
       }
@@ -346,8 +350,10 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ specializations, editingTools, languages }),
       });
-      if (res.ok) setMessage({ type: "success", text: "클리퍼 프로필이 저장되었습니다." });
-      else {
+      if (res.ok) {
+        setMessage({ type: "success", text: "클리퍼 프로필이 저장되었습니다." });
+        fetchProfile();
+      } else {
         const d = await res.json().catch(() => ({}));
         setMessage({ type: "error", text: d.error || "저장에 실패했습니다." });
       }
