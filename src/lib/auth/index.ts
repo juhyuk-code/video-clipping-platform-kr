@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import Kakao from "next-auth/providers/kakao";
 import Naver from "next-auth/providers/naver";
 import Google from "next-auth/providers/google";
-
 const providers = [
   ...(process.env.KAKAO_CLIENT_ID
     ? [Kakao({ clientId: process.env.KAKAO_CLIENT_ID, clientSecret: process.env.KAKAO_CLIENT_SECRET! })]
