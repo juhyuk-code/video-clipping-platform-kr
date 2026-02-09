@@ -42,71 +42,91 @@ export default async function PublicProfilePage({
 }) {
   const { id } = await params;
 
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      nickname: true,
-      role: true,
-      bio: true,
-      createdAt: true,
-      creatorProfile: {
-        select: {
-          youtubeChannelName: true,
-          subscriberCount: true,
-          contentCategories: true,
-          preferredClipStyle: true,
-          twitchUrl: true,
-          afreecaTvUrl: true,
-          chzzkUrl: true,
-          averageRating: true,
-          totalProjectsPosted: true,
+  // Try full query; fall back if new tables/columns haven't been migrated yet
+  let user: any;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        nickname: true,
+        role: true,
+        bio: true,
+        createdAt: true,
+        creatorProfile: {
+          select: {
+            youtubeChannelName: true,
+            subscriberCount: true,
+            contentCategories: true,
+            preferredClipStyle: true,
+            twitchUrl: true,
+            afreecaTvUrl: true,
+            chzzkUrl: true,
+            averageRating: true,
+            totalProjectsPosted: true,
+          },
         },
-      },
-      clipperProfile: {
-        select: {
-          specializations: true,
-          editingTools: true,
-          languages: true,
-          tier: true,
-          isVerified: true,
-          averageRating: true,
-          totalProjectsCompleted: true,
-          portfolioItems: {
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              videoUrl: true,
-              thumbnailUrl: true,
-              platform: true,
-              viewCount: true,
+        clipperProfile: {
+          select: {
+            specializations: true,
+            editingTools: true,
+            languages: true,
+            tier: true,
+            isVerified: true,
+            averageRating: true,
+            totalProjectsCompleted: true,
+            portfolioItems: {
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                videoUrl: true,
+                thumbnailUrl: true,
+                platform: true,
+                viewCount: true,
+              },
+              take: 12,
+              orderBy: { createdAt: "desc" },
             },
-            take: 12,
-            orderBy: { createdAt: "desc" },
+          },
+        },
+        socialConnections: {
+          select: {
+            provider: true,
+            username: true,
+            displayName: true,
+            profileUrl: true,
+            followerCount: true,
+            channelName: true,
+          },
+        },
+        _count: {
+          select: {
+            reviewsReceived: true,
+            campaignsCreated: true,
+            submissions: true,
           },
         },
       },
-      socialConnections: {
-        select: {
-          provider: true,
-          username: true,
-          displayName: true,
-          profileUrl: true,
-          followerCount: true,
-          channelName: true,
-        },
-      },
-      _count: {
-        select: {
-          reviewsReceived: true,
-          campaignsCreated: true,
-          submissions: true,
-        },
-      },
-    },
-  });
+    });
+  } catch {
+    // Fallback: query only base user fields (new tables/columns may not exist yet)
+    try {
+      user = await prisma.user.findUnique({
+        where: { id },
+        select: { id: true, name: true, nickname: true, role: true, bio: true, createdAt: true },
+      });
+    } catch {
+      user = null;
+    }
+    if (user) {
+      user.socialConnections = [];
+      user.creatorProfile = null;
+      user.clipperProfile = null;
+      user._count = { reviewsReceived: 0, campaignsCreated: 0, submissions: 0 };
+    }
+  }
 
   if (!user) notFound();
 
@@ -168,7 +188,7 @@ export default async function PublicProfilePage({
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {user.socialConnections.map((sc) => {
+              {user.socialConnections.map((sc: any) => {
                 const providerInfo = PROVIDER_ICONS[sc.provider];
                 const Icon = providerInfo?.icon || Youtube;
                 return (
@@ -262,7 +282,7 @@ export default async function PublicProfilePage({
               <div>
                 <p className="mb-2 text-sm font-medium text-muted-foreground">콘텐츠 카테고리</p>
                 <div className="flex flex-wrap gap-2">
-                  {cp.contentCategories.map((c) => (
+                  {cp.contentCategories.map((c: string) => (
                     <Badge key={c} variant="secondary">{c}</Badge>
                   ))}
                 </div>
@@ -313,7 +333,7 @@ export default async function PublicProfilePage({
               <div>
                 <p className="mb-2 text-sm font-medium text-muted-foreground">전문 분야</p>
                 <div className="flex flex-wrap gap-2">
-                  {kp.specializations.map((s) => (
+                  {kp.specializations.map((s: string) => (
                     <Badge key={s} variant="secondary">{s}</Badge>
                   ))}
                 </div>
@@ -323,7 +343,7 @@ export default async function PublicProfilePage({
               <div>
                 <p className="mb-2 text-sm font-medium text-muted-foreground">편집 도구</p>
                 <div className="flex flex-wrap gap-2">
-                  {kp.editingTools.map((t) => (
+                  {kp.editingTools.map((t: string) => (
                     <Badge key={t} variant="outline">{t}</Badge>
                   ))}
                 </div>
@@ -333,7 +353,7 @@ export default async function PublicProfilePage({
               <div>
                 <p className="mb-2 text-sm font-medium text-muted-foreground">작업 가능 언어</p>
                 <div className="flex flex-wrap gap-2">
-                  {kp.languages.map((l) => (
+                  {kp.languages.map((l: string) => (
                     <Badge key={l} variant="outline">{l}</Badge>
                   ))}
                 </div>
@@ -351,7 +371,7 @@ export default async function PublicProfilePage({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {kp.portfolioItems.map((item) => (
+              {kp.portfolioItems.map((item: any) => (
                 <a
                   key={item.id}
                   href={item.videoUrl}

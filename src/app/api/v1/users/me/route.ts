@@ -8,37 +8,72 @@ export async function GET() {
   const user = await requireAuth();
   if (!user) return apiError("Unauthorized", 401);
 
-  const fullUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: {
-      creatorProfile: true,
-      clipperProfile: { include: { portfolioItems: true } },
-      accounts: { select: { provider: true } },
-      socialConnections: {
-        select: {
-          id: true,
-          provider: true,
-          username: true,
-          displayName: true,
-          profileUrl: true,
-          followerCount: true,
-          channelName: true,
-          connectedAt: true,
-          lastSyncedAt: true,
-          _count: { select: { videos: true } },
+  // Try the full query first; if new tables (SocialConnection etc.) haven't been
+  // migrated yet, fall back to a basic query so the page still works.
+  let fullUser;
+  try {
+    fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        creatorProfile: true,
+        clipperProfile: { include: { portfolioItems: true } },
+        accounts: { select: { provider: true } },
+        socialConnections: {
+          select: {
+            id: true,
+            provider: true,
+            username: true,
+            displayName: true,
+            profileUrl: true,
+            followerCount: true,
+            channelName: true,
+            connectedAt: true,
+            lastSyncedAt: true,
+            _count: { select: { videos: true } },
+          },
+        },
+        _count: {
+          select: {
+            projectsAsCreator: true,
+            projectsAsClipper: true,
+            reviewsReceived: true,
+            campaignsCreated: true,
+            submissions: true,
+          },
         },
       },
-      _count: {
-        select: {
-          projectsAsCreator: true,
-          projectsAsClipper: true,
-          reviewsReceived: true,
-          campaignsCreated: true,
-          submissions: true,
+    });
+  } catch {
+    // Fallback: query without relations whose tables/columns may not exist yet.
+    // Only include accounts (from Auth.js, always exists).
+    try {
+      fullUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+          accounts: { select: { provider: true } },
         },
-      },
-    },
-  });
+      });
+    } catch {
+      // Last resort: bare user query
+      fullUser = await prisma.user.findUnique({ where: { id: user.id } });
+    }
+    if (fullUser) {
+      // Attach empty defaults so the client shape stays consistent
+      if (!(fullUser as any).socialConnections) (fullUser as any).socialConnections = [];
+      if (!(fullUser as any).creatorProfile) (fullUser as any).creatorProfile = null;
+      if (!(fullUser as any).clipperProfile) (fullUser as any).clipperProfile = null;
+      if (!(fullUser as any).accounts) (fullUser as any).accounts = [];
+      if (!(fullUser as any)._count) {
+        (fullUser as any)._count = {
+          projectsAsCreator: 0,
+          projectsAsClipper: 0,
+          reviewsReceived: 0,
+          campaignsCreated: 0,
+          submissions: 0,
+        };
+      }
+    }
+  }
 
   if (!fullUser) return apiError("User not found", 404);
 
