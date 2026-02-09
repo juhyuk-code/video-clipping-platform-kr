@@ -72,9 +72,24 @@ export const createMessageSchema = z.object({
 
 export const updateUserProfileSchema = z.object({
   nickname: z.string().min(1).max(50).optional(),
-  bio: z.string().max(500).optional(),
+  bio: z.string().max(280).optional(),
   role: z.enum(["CREATOR", "CLIPPER"]).optional(),
   preferredLanguage: z.enum(["KO", "EN"]).optional(),
+});
+
+export const updateCreatorProfileSchema = z.object({
+  contentCategories: z.array(z.string()).optional(),
+  preferredClipStyle: z.string().max(100).optional().nullable(),
+  defaultClipGuidelines: z.string().max(2000).optional().nullable(),
+  twitchUrl: z.string().url().optional().nullable().or(z.literal("")),
+  afreecaTvUrl: z.string().url().optional().nullable().or(z.literal("")),
+  chzzkUrl: z.string().url().optional().nullable().or(z.literal("")),
+});
+
+export const updateClipperProfileSchema = z.object({
+  specializations: z.array(z.string()).optional(),
+  editingTools: z.array(z.string()).optional(),
+  languages: z.array(z.string()).optional(),
 });
 
 export const marketplaceQuerySchema = z.object({
