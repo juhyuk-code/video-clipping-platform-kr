@@ -394,89 +394,58 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Clipper profile */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                클리퍼 정보
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                {sub.clipper.image ? (
-                  <img
-                    src={sub.clipper.image}
-                    alt={clipperName}
-                    className="h-12 w-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-                    {clipperName.charAt(0)}
+          {/* Clipper profile — compact card linking to full public profile */}
+          <a href={`/profile/${sub.clipper.id}`} className="block">
+            <Card className="transition-colors hover:bg-muted/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  클리퍼 정보
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3">
+                  {sub.clipper.image ? (
+                    <img
+                      src={sub.clipper.image}
+                      alt={clipperName}
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+                      {clipperName.charAt(0)}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium">{clipperName}</p>
+                    {sub.clipper.bio && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{sub.clipper.bio}</p>
+                    )}
+                  </div>
+                </div>
+
+                {profile && (
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    {profile.averageRating != null && profile.averageRating > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3.5 w-3.5 text-yellow-500" />
+                        {profile.averageRating.toFixed(1)}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      {profile.totalProjectsCompleted}건 완료
+                    </span>
+                    {profile.tier && profile.tier !== "BRONZE" && (
+                      <Badge variant="secondary" className="text-xs">{profile.tier}</Badge>
+                    )}
                   </div>
                 )}
-                <div>
-                  <p className="font-medium">{clipperName}</p>
-                  {sub.clipper.bio && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">{sub.clipper.bio}</p>
-                  )}
-                </div>
-              </div>
 
-              {profile && (
-                <div className="space-y-3 text-sm">
-                  {profile.averageRating != null && profile.averageRating > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span>{profile.averageRating.toFixed(1)} 평점</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    <span>완료 프로젝트 {profile.totalProjectsCompleted}건</span>
-                  </div>
-                  {profile.tier && profile.tier !== "BRONZE" && (
-                    <Badge variant="secondary" className="text-xs">
-                      {profile.tier}
-                    </Badge>
-                  )}
-
-                  {profile.specializations.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">전문 분야</p>
-                      <div className="flex flex-wrap gap-1">
-                        {profile.specializations.map((s) => (
-                          <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {profile.editingTools.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">편집 도구</p>
-                      <div className="flex flex-wrap gap-1">
-                        {profile.editingTools.map((t) => (
-                          <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {profile.languages.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">언어</p>
-                      <div className="flex flex-wrap gap-1">
-                        {profile.languages.map((l) => (
-                          <Badge key={l} variant="outline" className="text-xs">{l}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                <p className="text-xs text-primary">프로필 보기 &rarr;</p>
+              </CardContent>
+            </Card>
+          </a>
 
           {/* Campaign reward info */}
           <Card>
