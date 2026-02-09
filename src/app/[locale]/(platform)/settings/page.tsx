@@ -466,6 +466,20 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <label className="text-sm font-medium">이메일</label>
+              <Input
+                value={profile?.email || ""}
+                disabled
+                placeholder="이메일 정보 없음"
+                className="bg-muted text-muted-foreground"
+              />
+              <p className="text-xs text-muted-foreground">
+                {profile?.email
+                  ? "로그인 계정에서 가져온 이메일입니다. 변경할 수 없습니다."
+                  : "OAuth 제공자에서 이메일을 가져올 수 없습니다. 비즈 앱 연동 후 이용 가능합니다."}
+              </p>
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">닉네임</label>
               <div className="relative">
                 <Input
