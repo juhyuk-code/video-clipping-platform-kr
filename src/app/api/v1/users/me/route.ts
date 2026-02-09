@@ -85,7 +85,13 @@ export async function PUT(req: NextRequest) {
   const user = await requireAuth();
   if (!user) return apiError("Unauthorized", 401);
 
-  const body = await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return apiError("Invalid JSON body", 400);
+  }
+
   const result = parseBody(updateUserProfileSchema, body);
   if ("error" in result) return apiError(result.error);
 
@@ -103,24 +109,37 @@ export async function PUT(req: NextRequest) {
     if (existing) return apiError("이미 사용 중인 닉네임입니다.", 409);
   }
 
-  const updated = await prisma.user.update({
-    where: { id: user.id },
-    data,
-  });
+  try {
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data,
+    });
 
-  // Create both profiles so user can freely switch modes
-  if (data.role) {
-    await prisma.creatorProfile.upsert({
-      where: { userId: user.id },
-      create: { userId: user.id },
-      update: {},
-    });
-    await prisma.clipperProfile.upsert({
-      where: { userId: user.id },
-      create: { userId: user.id },
-      update: {},
-    });
+    // Create both profiles so user can freely switch modes
+    if (data.role) {
+      try {
+        await prisma.creatorProfile.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id },
+          update: {},
+        });
+        await prisma.clipperProfile.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id },
+          update: {},
+        });
+      } catch (profileErr) {
+        // Profile creation is non-critical — user update already succeeded
+        console.error("Profile upsert failed:", profileErr);
+      }
+    }
+
+    return apiResponse(updated);
+  } catch (err) {
+    console.error("User update failed:", err);
+    return apiError(
+      err instanceof Error ? err.message : "프로필 업데이트에 실패했습니다",
+      500,
+    );
   }
-
-  return apiResponse(updated);
 }
