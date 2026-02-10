@@ -29,6 +29,7 @@ export default async function SubmissionDetailPage({
           fixedPayPerClip: true,
           cprRate: true,
           viewBonusRate: true,
+          totalBudget: true,
           targetPlatforms: true,
         },
       },
@@ -136,6 +137,7 @@ export default async function SubmissionDetailPage({
       fixedPayPerClip: submission.campaign.fixedPayPerClip ? Number(submission.campaign.fixedPayPerClip) : null,
       cprRate: submission.campaign.cprRate ? Number(submission.campaign.cprRate) : null,
       viewBonusRate: submission.campaign.viewBonusRate ? Number(submission.campaign.viewBonusRate) : null,
+      totalBudget: submission.campaign.totalBudget ? Number(submission.campaign.totalBudget) : null,
       targetPlatforms: submission.campaign.targetPlatforms,
     },
     clipper: {
