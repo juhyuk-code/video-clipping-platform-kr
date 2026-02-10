@@ -21,10 +21,22 @@ import {
   Film,
   Wallet,
   AlertCircle,
+  TrendingUp,
+  BarChart3,
+  Coins,
 } from "lucide-react";
 import { formatKRW } from "@/lib/utils";
 import { Sheet } from "@/components/ui/sheet";
 import { ProfileSummary, ProfileFull, type ProfileData } from "@/components/profile/profile-content";
+import { ViewChart } from "@/components/charts/view-chart";
+import { StatsGrid } from "@/components/charts/stats-grid";
+import {
+  calculateEstimatedEarnings,
+  calculateViewVelocity,
+  snapshotsToChartData,
+} from "@/lib/earnings";
+
+// ─── Constants ───────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
   APPLIED: "지원 중",
@@ -47,6 +59,20 @@ const STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destr
   REJECTED: "destructive",
   PAID: "outline",
 };
+
+const CAMPAIGN_TYPE_LABELS: Record<string, string> = {
+  PROJECT: "프로젝트형",
+  REWARD: "리워드형",
+  HYBRID: "하이브리드형",
+};
+
+const CAMPAIGN_TYPE_COLORS: Record<string, string> = {
+  PROJECT: "bg-violet-100 text-violet-700 border-violet-200",
+  REWARD: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  HYBRID: "bg-amber-100 text-amber-700 border-amber-200",
+};
+
+// ─── Types ───────────────────────────────────────────────────
 
 interface SubmissionData {
   id: string;
@@ -77,6 +103,7 @@ interface SubmissionData {
     fixedPayPerClip: number | null;
     cprRate: number | null;
     viewBonusRate: number | null;
+    totalBudget: number | null;
     targetPlatforms: string[];
   };
   clipper: {
@@ -103,6 +130,8 @@ interface SubmissionData {
   isClipper: boolean;
 }
 
+// ─── Component ───────────────────────────────────────────────
+
 export function SubmissionDetailClient({ submission: sub }: { submission: SubmissionData }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -113,6 +142,21 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
 
   const canReview = sub.isCreator && ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
   const clipperName = sub.clipper.nickname ?? sub.clipper.name ?? "사용자";
+  const hasClip = !!sub.clipUrl || !!sub.clipFileUrl;
+  const campaignType = sub.campaign.type;
+
+  // Derived data
+  const chartData = snapshotsToChartData(sub.snapshots);
+  const velocity = calculateViewVelocity(sub.snapshots);
+  const earnings = calculateEstimatedEarnings(
+    campaignType,
+    sub.latestViewCount,
+    sub.campaign.fixedPayPerClip,
+    sub.campaign.cprRate,
+    sub.campaign.viewBonusRate
+  );
+
+  // ─── Handlers ────────────────────────────────────────────
 
   async function handleReview(status: "APPROVED" | "REVISION_REQ" | "REJECTED") {
     setLoading(true);
@@ -143,6 +187,8 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
     }
   }
 
+  // ─── Render ──────────────────────────────────────────────
+
   return (
     <>
       {/* Profile Sheet */}
@@ -170,9 +216,15 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
               </>
             ) : "내 지원 현황"}
           </h1>
-          <p className="text-muted-foreground">
-            {sub.campaign.title}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-muted-foreground">{sub.campaign.title}</p>
+            <Badge
+              variant="outline"
+              className={`text-xs ${CAMPAIGN_TYPE_COLORS[campaignType] ?? ""}`}
+            >
+              {CAMPAIGN_TYPE_LABELS[campaignType] ?? campaignType}
+            </Badge>
+          </div>
         </div>
         <Badge variant={STATUS_COLORS[sub.status]} className="text-sm">
           {STATUS_LABELS[sub.status]}
@@ -186,9 +238,10 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main content */}
+        {/* ═══ Main content ═══ */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Application info */}
+
+          {/* ─── 지원 정보 ─── */}
           <Card>
             <CardHeader>
               <CardTitle>지원 정보</CardTitle>
@@ -221,7 +274,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
             </CardContent>
           </Card>
 
-          {/* Submitted clip */}
+          {/* ─── 제출된 클립 ─── */}
           {sub.clipUrl && (
             <Card>
               <CardHeader>
@@ -252,26 +305,110 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                     <Badge variant="outline">{sub.targetPlatform.replace("_", " ")}</Badge>
                   </div>
                 )}
-                {sub.latestViewCount > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">조회수</p>
-                    <p className="flex items-center gap-1 text-sm font-medium">
-                      <Eye className="h-3.5 w-3.5" />
-                      {sub.latestViewCount.toLocaleString()}회
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ─── 성과 분석 ─── */}
+          {hasClip && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  {sub.isCreator ? "클립 성과 분석" : "내 클립 성과"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Chart */}
+                <div>
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">조회수 추이</p>
+                  <ViewChart data={chartData} height={200} />
+                </div>
+
+                {/* Stats */}
+                <StatsGrid
+                  stats={[
+                    {
+                      label: "총 조회수",
+                      value: `${sub.latestViewCount.toLocaleString()}회`,
+                    },
+                    {
+                      label: "일평균 증가",
+                      value: velocity > 0 ? `+${velocity.toLocaleString()}/일` : "-",
+                      color: velocity > 0 ? "text-green-600" : undefined,
+                    },
+                    campaignType === "PROJECT"
+                      ? {
+                          label: "게시 플랫폼",
+                          value: sub.targetPlatform?.replace("_", " ") ?? "-",
+                        }
+                      : {
+                          label: sub.isCreator ? "예상 지급액" : "예상 수익",
+                          value: formatKRW(earnings.total),
+                          color: "text-primary",
+                        },
+                  ]}
+                />
+
+                {/* Earnings breakdown — REWARD */}
+                {campaignType === "REWARD" && (
+                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                    <p className="text-sm font-medium">
+                      {sub.isCreator ? "지급 예정 금액" : "예상 수익 금액"}
                     </p>
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-mono">
+                        {sub.latestViewCount.toLocaleString()} ÷ 1,000 × {formatKRW(sub.campaign.cprRate ?? 0)}
+                      </span>
+                      <span className="mx-2">=</span>
+                      <span className="font-bold text-foreground">{formatKRW(earnings.viewBased)}</span>
+                    </div>
+                    {/* Progress bar */}
+                    {sub.campaign.totalBudget && sub.campaign.totalBudget > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{sub.isCreator ? "예산 소진율" : "수익 달성율"}</span>
+                          <span>
+                            {formatKRW(earnings.total)} / {formatKRW(sub.campaign.totalBudget)}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-emerald-500 transition-all"
+                            style={{
+                              width: `${Math.min(100, (earnings.total / sub.campaign.totalBudget) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-                {/* View snapshots timeline */}
-                {sub.snapshots.length > 1 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">조회수 추이</p>
-                    <div className="space-y-1">
-                      {sub.snapshots.slice(0, 10).map((snap, i) => (
-                        <div key={i} className="flex justify-between text-xs text-muted-foreground">
-                          <span>{new Date(snap.capturedAt).toLocaleString("ko-KR")}</span>
-                          <span className="font-medium">{snap.viewCount.toLocaleString()}회</span>
-                        </div>
-                      ))}
+
+                {/* Earnings breakdown — HYBRID */}
+                {campaignType === "HYBRID" && (
+                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                    <p className="text-sm font-medium">
+                      {sub.isCreator ? "예상 지급 내역" : "예상 수익 내역"}
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">고정 금액</span>
+                        <span className="font-medium">{formatKRW(earnings.fixed)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">뷰 보너스</span>
+                        <span className="font-medium">{formatKRW(earnings.viewBased)}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-mono">
+                          {sub.latestViewCount.toLocaleString()} ÷ 1,000 × {formatKRW(sub.campaign.viewBonusRate ?? 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span className="font-medium">예상 합계</span>
+                        <span className="font-bold text-primary">{formatKRW(earnings.total)}</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -279,7 +416,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
             </Card>
           )}
 
-          {/* Revision notes */}
+          {/* ─── 수정 요청 사항 ─── */}
           {sub.revisionNotes && (
             <Card className="border-yellow-500">
               <CardHeader>
@@ -299,13 +436,13 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
             </Card>
           )}
 
-          {/* Payment info */}
+          {/* ─── 정산 정보 ─── */}
           {sub.totalPaid > 0 && (
             <Card className="border-green-500">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
                   <Wallet className="h-5 w-5" />
-                  정산 정보
+                  {sub.isCreator ? "지급 완료" : "수령 완료"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
@@ -322,19 +459,19 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                   </div>
                 )}
                 <div className="flex justify-between border-t pt-2">
-                  <span className="font-medium">총 지급액</span>
+                  <span className="font-medium">{sub.isCreator ? "총 지급액" : "총 수령액"}</span>
                   <span className="font-bold text-green-600">{formatKRW(sub.totalPaid)}</span>
                 </div>
                 {sub.paidAt && (
                   <p className="text-xs text-muted-foreground">
-                    지급일: {new Date(sub.paidAt).toLocaleDateString("ko-KR")}
+                    {sub.isCreator ? "지급일" : "수령일"}: {new Date(sub.paidAt).toLocaleDateString("ko-KR")}
                   </p>
                 )}
               </CardContent>
             </Card>
           )}
 
-          {/* Creator review actions */}
+          {/* ─── 리뷰 (creator only) ─── */}
           {canReview && (
             <Card>
               <CardHeader>
@@ -411,67 +548,117 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
           )}
         </div>
 
-        {/* Sidebar */}
+        {/* ═══ Sidebar ═══ */}
         <div className="space-y-6">
-          {/* Clipper profile — summary with expand */}
+
+          {/* ─── Clipper profile ─── */}
           <ProfileSummary
             profile={sub.clipperProfile}
             onExpand={() => setProfileOpen(true)}
           />
 
-          {/* Campaign reward info */}
+          {/* ─── 보상 구조 ─── */}
           <Card>
             <CardHeader>
-              <CardTitle>보상 정보</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Coins className="h-5 w-5" />
+                  보상 구조
+                </span>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${CAMPAIGN_TYPE_COLORS[campaignType] ?? ""}`}
+                >
+                  {CAMPAIGN_TYPE_LABELS[campaignType] ?? campaignType}
+                </Badge>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {sub.campaign.fixedPayPerClip && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">클립당</span>
-                  <span className="font-medium">{formatKRW(sub.campaign.fixedPayPerClip)}</span>
-                </div>
-              )}
-              {sub.campaign.cprRate && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">1000뷰당</span>
-                  <span className="font-medium">{formatKRW(sub.campaign.cprRate)}</span>
-                </div>
-              )}
-              {sub.campaign.viewBonusRate && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">뷰 보너스</span>
-                  <span className="font-medium">{formatKRW(sub.campaign.viewBonusRate)}/1K</span>
-                </div>
-              )}
-              <div className="border-t pt-2">
+            <CardContent className="space-y-3">
+              {/* Rate formula */}
+              <div className="rounded-lg bg-muted/50 p-3">
+                <p className="text-xs font-medium text-muted-foreground">보상 공식</p>
+                <p className="mt-1 text-sm font-semibold">
+                  {campaignType === "PROJECT" && (
+                    <>클립당 고정 {formatKRW(sub.campaign.fixedPayPerClip ?? 0)}</>
+                  )}
+                  {campaignType === "REWARD" && (
+                    <>1,000뷰당 {formatKRW(sub.campaign.cprRate ?? 0)}</>
+                  )}
+                  {campaignType === "HYBRID" && (
+                    <>
+                      고정 {formatKRW(sub.campaign.fixedPayPerClip ?? 0)} + 1,000뷰당 {formatKRW(sub.campaign.viewBonusRate ?? 0)}
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {/* Target platforms */}
+              <div>
                 <p className="text-xs font-medium text-muted-foreground">타겟 플랫폼</p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {sub.campaign.targetPlatforms.map((p) => (
-                    <Badge key={p} variant="outline" className="text-xs">{p.replace("_", " ")}</Badge>
+                    <Badge key={p} variant="outline" className="text-xs">
+                      {p.replace("_", " ")}
+                    </Badge>
                   ))}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Timeline */}
+          {/* ─── 수익 요약 (REWARD & HYBRID only) ─── */}
+          {(campaignType === "REWARD" || campaignType === "HYBRID") && hasClip && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <TrendingUp className="h-5 w-5" />
+                  {sub.isCreator ? "지급 요약" : "수익 요약"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">현재 조회수</span>
+                  <span className="flex items-center gap-1 font-medium">
+                    <Eye className="h-3.5 w-3.5" />
+                    {sub.latestViewCount.toLocaleString()}회
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    {sub.isCreator ? "예상 지급액" : "예상 수익"}
+                  </span>
+                  <span className="font-bold text-primary">{formatKRW(earnings.total)}</span>
+                </div>
+                {sub.totalPaid > 0 && (
+                  <>
+                    <div className="border-t" />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        {sub.isCreator ? "실제 지급액" : "실제 수령액"}
+                      </span>
+                      <span className="font-bold text-green-600">{formatKRW(sub.totalPaid)}</span>
+                    </div>
+                    {sub.paidAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {sub.isCreator ? "지급일" : "수령일"}: {new Date(sub.paidAt).toLocaleDateString("ko-KR")}
+                      </p>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ─── 타임라인 ─── */}
           <Card>
             <CardHeader>
               <CardTitle>타임라인</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 text-sm">
-                <TimelineItem
-                  label="지원"
-                  date={sub.createdAt}
-                  active
-                />
+                <TimelineItem label="지원" date={sub.createdAt} active />
                 {sub.submittedAt && (
-                  <TimelineItem
-                    label="클립 제출"
-                    date={sub.submittedAt}
-                    active
-                  />
+                  <TimelineItem label="클립 제출" date={sub.submittedAt} active />
                 )}
                 {sub.reviewedAt && (
                   <TimelineItem
@@ -487,11 +674,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                   />
                 )}
                 {sub.paidAt && (
-                  <TimelineItem
-                    label="정산 완료"
-                    date={sub.paidAt}
-                    active
-                  />
+                  <TimelineItem label="정산 완료" date={sub.paidAt} active />
                 )}
               </div>
             </CardContent>
@@ -501,6 +684,8 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
     </>
   );
 }
+
+// ─── Timeline helper ─────────────────────────────────────────
 
 function TimelineItem({ label, date, active }: { label: string; date: string; active: boolean }) {
   return (
