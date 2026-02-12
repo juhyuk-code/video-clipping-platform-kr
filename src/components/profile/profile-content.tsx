@@ -501,3 +501,368 @@ export function ProfileFull({ profile }: { profile: ProfileData }) {
     </div>
   );
 }
+
+// ========================
+// COMPLETE variant (for Sheet — comprehensive deep-dive, no overlap with hero)
+// ========================
+
+export interface ClipperStats {
+  totalSubmissions: number;
+  approvedCount: number;
+  approvalRate: number | null;
+  totalViewsGenerated: number;
+  activeCampaigns: number;
+}
+
+function formatViewsKR(n: number): string {
+  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}천`;
+  return String(n);
+}
+
+function relativeDuration(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days < 30) return `${days}일`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}개월`;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  return rem > 0 ? `${years}년 ${rem}개월` : `${years}년`;
+}
+
+export function ProfileComplete({
+  profile,
+  stats,
+}: {
+  profile: ProfileData;
+  stats?: ClipperStats;
+}) {
+  const displayName = profile.nickname || "사용자";
+  const kp = profile.clipperProfile;
+  const cp = profile.creatorProfile;
+  const isClipper = profile.role === "CLIPPER";
+  const isCreator = profile.role === "CREATOR";
+  const portfolioItems = kp?.portfolioItems ?? [];
+  const totalPortfolioViews = portfolioItems.reduce((s, p) => s + (p.viewCount ?? 0), 0);
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* ─── Header ─── */}
+      <div className="flex items-start gap-4">
+        {profile.image ? (
+          <img
+            src={profile.image}
+            alt={displayName}
+            className="h-20 w-20 rounded-full object-cover ring-2 ring-primary/20"
+          />
+        ) : (
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground ring-2 ring-primary/20">
+            {getInitials(displayName)}
+          </div>
+        )}
+        <div className="flex-1">
+          <h3 className="text-xl font-bold">{displayName}</h3>
+          {profile.bio && (
+            <p className="mt-1 text-sm text-muted-foreground">{profile.bio}</p>
+          )}
+          {isCreator && cp?.youtubeChannelName && (
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {cp.youtubeChannelName}
+              {cp.subscriberCount != null && (
+                <span className="ml-1">· 구독자 {cp.subscriberCount.toLocaleString()}명</span>
+              )}
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <Badge variant="outline">
+              {isCreator ? "크리에이터" : "클리퍼"}
+            </Badge>
+            {kp?.isVerified && (
+              <Badge className="gap-1 bg-blue-500 text-white">
+                <Shield className="h-3 w-3" /> 인증됨
+              </Badge>
+            )}
+            {kp?.tier && kp.tier !== "BRONZE" && (
+              <Badge variant="secondary">{kp.tier}</Badge>
+            )}
+            <Badge variant="secondary" className="gap-1">
+              <Calendar className="h-3 w-3" />
+              {relativeDuration(profile.createdAt)} 활동
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Comprehensive Stats ─── */}
+      {isClipper && (
+        <div>
+          <h4 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            실적 요약
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg border p-3 text-center">
+              <p className="flex items-center justify-center gap-1 text-lg font-bold">
+                {kp?.averageRating ? (
+                  <><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />{kp.averageRating.toFixed(1)}</>
+                ) : "-"}
+              </p>
+              <p className="text-xs text-muted-foreground">평균 평점</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className={`text-lg font-bold ${stats?.approvalRate != null && stats.approvalRate >= 70 ? "text-green-600" : ""}`}>
+                {stats?.approvalRate != null ? `${stats.approvalRate}%` : "-"}
+              </p>
+              <p className="text-xs text-muted-foreground">승인율</p>
+              {stats && stats.totalSubmissions > 0 && (
+                <p className="text-[10px] text-muted-foreground">{stats.approvedCount}/{stats.totalSubmissions}</p>
+              )}
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-lg font-bold">{kp?.totalProjectsCompleted ?? 0}</p>
+              <p className="text-xs text-muted-foreground">완료 캠페인</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-lg font-bold">{profile._count.reviewsReceived}</p>
+              <p className="text-xs text-muted-foreground">받은 리뷰</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-lg font-bold">
+                {stats && stats.totalViewsGenerated > 0
+                  ? `${formatViewsKR(stats.totalViewsGenerated)}회`
+                  : "-"}
+              </p>
+              <p className="text-xs text-muted-foreground">총 생성 조회수</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className={`text-lg font-bold ${stats && stats.activeCampaigns >= 3 ? "text-orange-600" : ""}`}>
+                {stats?.activeCampaigns ?? 0}개
+              </p>
+              <p className="text-xs text-muted-foreground">진행 중 캠페인</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCreator && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-lg border p-3 text-center">
+            <p className="flex items-center justify-center gap-1 text-lg font-bold">
+              {cp?.averageRating ? (
+                <><Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />{cp.averageRating.toFixed(1)}</>
+              ) : "-"}
+            </p>
+            <p className="text-xs text-muted-foreground">평균 평점</p>
+          </div>
+          <div className="rounded-lg border p-3 text-center">
+            <p className="text-lg font-bold">{cp?.totalProjectsPosted ?? 0}</p>
+            <p className="text-xs text-muted-foreground">등록 캠페인</p>
+          </div>
+          <div className="rounded-lg border p-3 text-center">
+            <p className="text-lg font-bold">{profile._count.reviewsReceived}</p>
+            <p className="text-xs text-muted-foreground">받은 리뷰</p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── CLIPPER: Skills (expanded) ─── */}
+      {isClipper && kp && (kp.specializations.length > 0 || kp.editingTools.length > 0 || kp.languages.length > 0) && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            전문 역량
+          </h4>
+          {kp.specializations.length > 0 && (
+            <div>
+              <p className="mb-2 flex items-center gap-1 text-sm font-medium">
+                <Sparkles className="h-3.5 w-3.5" /> 전문 분야
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {kp.specializations.map((s) => (
+                  <Badge key={s} variant="secondary">{s}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {kp.editingTools.length > 0 && (
+            <div>
+              <p className="mb-2 flex items-center gap-1 text-sm font-medium">
+                <Wrench className="h-3.5 w-3.5" /> 편집 도구
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {kp.editingTools.map((t) => (
+                  <Badge key={t} variant="outline">{t}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {kp.languages.length > 0 && (
+            <div>
+              <p className="mb-2 flex items-center gap-1 text-sm font-medium">
+                <Globe className="h-3.5 w-3.5" /> 작업 가능 언어
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {kp.languages.map((l) => (
+                  <Badge key={l} variant="outline">{l}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── CLIPPER: Full Portfolio ─── */}
+      {isClipper && portfolioItems.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              포트폴리오
+            </h4>
+            {totalPortfolioViews > 0 && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Eye className="h-3 w-3" />
+                총 {formatViewsKR(totalPortfolioViews)}회
+              </span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {portfolioItems.map((item) => (
+              <a
+                key={item.id}
+                href={item.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
+              >
+                {item.thumbnailUrl ? (
+                  <img
+                    src={item.thumbnailUrl}
+                    alt={item.title}
+                    className="h-16 w-24 shrink-0 rounded object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded bg-muted">
+                    <Eye className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm group-hover:text-primary">{item.title}</p>
+                  {item.description && (
+                    <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                  )}
+                  <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px]">{item.platform}</Badge>
+                    {item.viewCount != null && (
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        {item.viewCount.toLocaleString()}회
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── CREATOR: Content Info ─── */}
+      {isCreator && cp && (cp.contentCategories.length > 0 || cp.preferredClipStyle) && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            콘텐츠 정보
+          </h4>
+          {cp.contentCategories.length > 0 && (
+            <div>
+              <p className="mb-2 text-sm font-medium">콘텐츠 카테고리</p>
+              <div className="flex flex-wrap gap-2">
+                {cp.contentCategories.map((c) => (
+                  <Badge key={c} variant="secondary">{c}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {cp.preferredClipStyle && (
+            <div>
+              <p className="mb-1 text-sm font-medium">선호 클립 스타일</p>
+              <Badge>{cp.preferredClipStyle}</Badge>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── CREATOR: Platform Links ─── */}
+      {isCreator && cp && (cp.twitchUrl || cp.afreecaTvUrl || cp.chzzkUrl) && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            방송 플랫폼
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {cp.twitchUrl && (
+              <a href={cp.twitchUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent">
+                Twitch <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            {cp.afreecaTvUrl && (
+              <a href={cp.afreecaTvUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent">
+                AfreecaTV <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            {cp.chzzkUrl && (
+              <a href={cp.chzzkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent">
+                CHZZK <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Social Connections (expanded with full detail) ─── */}
+      {profile.socialConnections.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            연결된 플랫폼
+          </h4>
+          <div className="space-y-2">
+            {profile.socialConnections.map((sc) => {
+              const providerInfo = PROVIDER_ICONS[sc.provider];
+              const Icon = providerInfo?.icon || Youtube;
+              return (
+                <a
+                  key={sc.provider}
+                  href={sc.profileUrl || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
+                >
+                  <Icon className="h-6 w-6 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {sc.displayName || sc.username || providerInfo?.label}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {sc.channelName && <span>@{sc.channelName}</span>}
+                      {sc.followerCount != null && (
+                        <span>{sc.followerCount.toLocaleString()} 팔로워</span>
+                      )}
+                    </div>
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Link to full profile page ─── */}
+      <div className="border-t pt-4">
+        <a
+          href={`/profile/${profile.id}`}
+          className="block w-full rounded-md border px-3 py-2 text-center text-sm font-medium transition-colors hover:bg-accent"
+        >
+          프로필 페이지에서 보기
+        </a>
+      </div>
+    </div>
+  );
+}
