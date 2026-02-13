@@ -68,8 +68,6 @@ export default function OnboardingPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "프로필 설정에 실패했습니다");
       }
-      // Set initial mode to match chosen role
-      localStorage.setItem("platform-mode", selectedRole.toLowerCase());
       // Hard navigation to bypass Next.js Router Cache —
       // the server layout needs a fresh render to see the new nickname
       window.location.href = "/dashboard";
@@ -131,7 +129,7 @@ export default function OnboardingPage() {
               ))}
 
               <p className="text-center text-xs text-muted-foreground">
-                언제든지 사이드바에서 모드를 전환할 수 있습니다
+                선택한 역할은 계정의 기본 작업 모드를 결정합니다
               </p>
 
               <Button

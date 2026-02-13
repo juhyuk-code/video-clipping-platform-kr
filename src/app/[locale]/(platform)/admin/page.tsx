@@ -17,8 +17,8 @@ async function getAdminStats() {
   const [totalUsers, totalCreators, totalClippers, totalProjects, openProjects, disputedProjects, totalFees, recentProjects] =
     await Promise.all([
       prisma.user.count(),
-      prisma.user.count({ where: { role: { in: ["CREATOR", "BOTH"] } } }),
-      prisma.user.count({ where: { role: { in: ["CLIPPER", "BOTH"] } } }),
+      prisma.user.count({ where: { role: "CREATOR" } }),
+      prisma.user.count({ where: { role: "CLIPPER" } }),
       prisma.project.count(),
       prisma.project.count({ where: { status: "OPEN" } }),
       prisma.project.count({ where: { status: "DISPUTED" } }),

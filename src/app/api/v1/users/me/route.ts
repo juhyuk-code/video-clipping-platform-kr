@@ -77,6 +77,19 @@ export async function GET() {
 
   if (!fullUser) return apiError("User not found", 404);
 
+  // Legacy cleanup: normalize deprecated BOTH role to CREATOR.
+  if ((fullUser as any).role === "BOTH") {
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { role: "CREATOR" },
+      });
+      (fullUser as any).role = "CREATOR";
+    } catch (err) {
+      console.error("Failed to normalize legacy BOTH role:", err);
+    }
+  }
+
   return apiResponse(fullUser);
 }
 
@@ -115,19 +128,23 @@ export async function PUT(req: NextRequest) {
       data,
     });
 
-    // Create both profiles so user can freely switch modes
+    // Ensure role-specific profile exists for the selected role.
     if (data.role) {
       try {
-        await prisma.creatorProfile.upsert({
-          where: { userId: user.id },
-          create: { userId: user.id },
-          update: {},
-        });
-        await prisma.clipperProfile.upsert({
-          where: { userId: user.id },
-          create: { userId: user.id },
-          update: {},
-        });
+        if (data.role === "CREATOR") {
+          await prisma.creatorProfile.upsert({
+            where: { userId: user.id },
+            create: { userId: user.id },
+            update: {},
+          });
+        }
+        if (data.role === "CLIPPER") {
+          await prisma.clipperProfile.upsert({
+            where: { userId: user.id },
+            create: { userId: user.id },
+            update: {},
+          });
+        }
       } catch (profileErr) {
         // Profile creation is non-critical — user update already succeeded
         console.error("Profile upsert failed:", profileErr);

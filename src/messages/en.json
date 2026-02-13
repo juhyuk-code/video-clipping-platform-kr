@@ -101,8 +101,6 @@
     "roleCreatorDesc": "I want to find clippers to create clips from my videos",
     "roleClipper": "Clipper",
     "roleClipperDesc": "I want to create short-form clips from creator videos",
-    "roleBoth": "Both",
-    "roleBothDesc": "I want to be both a creator and a clipper",
     "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
     "alreadyHaveAccount": "Already have an account?",
     "dontHaveAccount": "Don't have an account?"
