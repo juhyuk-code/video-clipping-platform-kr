@@ -128,7 +128,8 @@ export async function PUT(
     const parsed = parseBody(reviewSubmissionSchema, body);
     if ("error" in parsed) return apiError(parsed.error);
 
-    const { status, revisionNotes } = parsed.data;
+    const { status } = parsed.data;
+    const revisionNotes = parsed.data.revisionNotes?.trim();
 
     if (status === "APPROVED") {
       // Process payment for PROJECT/HYBRID types
@@ -258,7 +259,7 @@ export async function PUT(
           userId: submission.clipperId,
           type: "REVISION_REQUESTED",
           title: "수정이 요청되었습니다",
-          body: `"${submission.campaign.title}" 캠페인 클립에 수정 요청이 있습니다.`,
+          body: `"${submission.campaign.title}" 캠페인 클립에 수정 요청이 있습니다. 사유: ${revisionNotes}`,
           linkUrl: `/campaigns/${id}`,
         },
       });
@@ -277,7 +278,7 @@ export async function PUT(
           userId: submission.clipperId,
           type: "CAMPAIGN_REJECTED",
           title: "클립이 반려되었습니다",
-          body: `"${submission.campaign.title}" 캠페인 클립이 반려되었습니다.`,
+          body: `"${submission.campaign.title}" 캠페인 클립이 반려되었습니다. 사유: ${revisionNotes}`,
           linkUrl: `/campaigns/${id}`,
         },
       });
