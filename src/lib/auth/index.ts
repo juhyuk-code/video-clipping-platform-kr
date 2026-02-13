@@ -25,30 +25,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     newUser: "/register/role",
   },
   callbacks: {
-    async signIn({ user }) {
-      // Legacy cleanup: normalize deprecated BOTH role to CREATOR.
-      if ((user as any).role === "BOTH") {
-        try {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { role: "CREATOR" },
-          });
-          (user as any).role = "CREATOR";
-        } catch (err) {
-          console.error("Failed to normalize legacy BOTH role:", err);
-        }
-      }
-      return true;
-    },
     session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
         // Pass nickname through so client components can show it
         session.user.nickname = (user as any).nickname ?? null;
-        session.user.role =
-          (user as any).role === "BOTH"
-            ? "CREATOR"
-            : ((user as any).role ?? null);
+        session.user.role = (user as any).role ?? null;
       }
       return session;
     },

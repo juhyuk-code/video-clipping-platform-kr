@@ -104,13 +104,12 @@ Primary legacy endpoints:
    - Files:
    - `/Users/juhyukbak/Documents/New project/src/app/[locale]/(platform)/settings/page.tsx`
    - `/Users/juhyukbak/Documents/New project/src/lib/social/providers.ts`
-3. Complete legacy role retirement in database schema.
-   - App behavior now normalizes legacy `BOTH` users to `CREATOR` and only supports creator/clipper paths.
-   - Remaining step: migrate DB rows and then remove deprecated enum value from Prisma schema.
+3. Apply the role-retirement migration across all environments.
+   - `BOTH` has been removed from app behavior and Prisma schema.
+   - Migration backfills legacy `BOTH` rows to `CREATOR` before enum replacement.
    - Files:
-   - `/Users/juhyukbak/Documents/New project/src/lib/auth/index.ts`
-   - `/Users/juhyukbak/Documents/New project/src/app/api/v1/users/me/route.ts`
    - `/Users/juhyukbak/Documents/New project/prisma/schema.prisma`
+   - `/Users/juhyukbak/Documents/New project/prisma/migrations/20260214002000_remove_both_user_role/migration.sql`
 
 ### P1 (product consistency / technical debt)
 1. Canonicalize to campaign routes in notifications/links.
