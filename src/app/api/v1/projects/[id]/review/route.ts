@@ -57,7 +57,7 @@ export async function POST(
     select: { role: true },
   });
 
-  if (revieweeUser?.role === "CLIPPER" || revieweeUser?.role === "BOTH") {
+  if (revieweeUser?.role === "CLIPPER") {
     await prisma.clipperProfile.updateMany({
       where: { userId: data.revieweeId },
       data: { averageRating: avgRating },

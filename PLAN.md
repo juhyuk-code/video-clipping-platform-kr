@@ -155,7 +155,7 @@ video-clipping-platform-kr/
 ```
 User
 ├── id, email, name, nickname
-├── role: CREATOR | CLIPPER | BOTH | ADMIN
+├── role: CREATOR | CLIPPER | ADMIN
 ├── kakaoId?, naverId?, googleId?
 ├── preferredLanguage: KO | EN
 ├── businessRegistrationNumber?
