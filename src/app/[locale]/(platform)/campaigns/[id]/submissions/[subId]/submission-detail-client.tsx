@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "@/i18n/routing";
+import { useRouter, Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,8 +36,7 @@ import {
   Instagram,
 } from "lucide-react";
 import { formatKRW } from "@/lib/utils";
-import { Sheet } from "@/components/ui/sheet";
-import { ProfileComplete, type ProfileData, type ClipperStats } from "@/components/profile/profile-content";
+import { type ProfileData } from "@/components/profile/profile-content";
 import { ViewChart } from "@/components/charts/view-chart";
 import { StatsGrid } from "@/components/charts/stats-grid";
 import {
@@ -215,8 +214,6 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   const [error, setError] = useState<string | null>(null);
   const [showRevisionForm, setShowRevisionForm] = useState(false);
   const [revisionNotes, setRevisionNotes] = useState("");
-  const [profileOpen, setProfileOpen] = useState(false);
-
   const canReview = sub.isCreator && ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
   const clipperName = sub.clipper.nickname ?? sub.clipper.name ?? "사용자";
   const hasClip = !!sub.clipUrl || !!sub.clipFileUrl;
@@ -273,15 +270,6 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
 
   return (
     <>
-      {/* Profile Sheet (comprehensive deep-dive) */}
-      <Sheet
-        open={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        title={`${clipperName}의 프로필`}
-      >
-        <ProfileComplete profile={sub.clipperProfile} stats={sub.clipperStats} />
-      </Sheet>
-
       {/* ══════════════════════════════════════════════════════
           HEADER: Campaign context + Status
           ══════════════════════════════════════════════════════ */}
@@ -323,8 +311,8 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
           <div className="p-5 pb-4">
             <div className="flex gap-4">
               {/* Avatar */}
-              <button
-                onClick={() => setProfileOpen(true)}
+              <Link
+                href={`/profile/${sub.clipper.id}`}
                 className="shrink-0 transition-transform hover:scale-105"
               >
                 {sub.clipper.image ? (
@@ -338,17 +326,17 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                     {getInitials(clipperName)}
                   </div>
                 )}
-              </button>
+              </Link>
 
               {/* Name + Bio + Badges */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={() => setProfileOpen(true)}
+                  <Link
+                    href={`/profile/${sub.clipper.id}`}
                     className="text-lg font-bold hover:text-primary transition-colors"
                   >
                     {clipperName}
-                  </button>
+                  </Link>
                   {kp?.tier && kp.tier !== "BRONZE" && (
                     <Badge variant="outline" className={`text-xs ${TIER_LABELS[kp.tier]?.color ?? ""}`}>
                       {TIER_LABELS[kp.tier]?.label ?? kp.tier}
@@ -539,15 +527,15 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
             </div>
           )}
 
-          {/* Expand CTA */}
+          {/* Full profile link */}
           <div className="border-t px-5 py-3">
-            <button
-              onClick={() => setProfileOpen(true)}
+            <Link
+              href={`/profile/${sub.clipper.id}`}
               className="flex w-full items-center justify-center gap-1 rounded-lg border bg-background py-2 text-sm font-medium text-primary transition-colors hover:bg-accent"
             >
               전체 프로필 보기
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Link>
           </div>
         </div>
       )}

@@ -15,6 +15,11 @@ import {
   Globe,
   Sparkles,
   Eye,
+  TrendingUp,
+  CheckCircle,
+  MessageSquare,
+  Activity,
+  Clock,
 } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { formatKRW } from "@/lib/utils";
@@ -48,6 +53,24 @@ const PROVIDER_ICONS: Record<string, { icon: React.ComponentType<{ className?: s
   TIKTOK: { icon: TikTokIcon, label: "TikTok" },
   TWITTER: { icon: XIcon, label: "X" },
 };
+
+function formatViewsCompact(n: number): string {
+  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}천`;
+  return String(n);
+}
+
+function getRelativeDuration(dateStr: string | Date): string {
+  const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  const diff = Date.now() - d.getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days < 30) return `${days}일`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}개월`;
+  const years = Math.floor(months / 12);
+  const remainMonths = months % 12;
+  return remainMonths > 0 ? `${years}년 ${remainMonths}개월` : `${years}년`;
+}
 
 const CAMPAIGN_TYPE_LABELS: Record<string, string> = {
   PROJECT: "프로젝트형",
@@ -174,6 +197,52 @@ export default async function PublicProfilePage({
     }
   }
 
+  // Fetch clipper-specific aggregate stats
+  let clipperStats = {
+    totalSubmissions: 0,
+    approvedCount: 0,
+    approvalRate: null as number | null,
+    totalViewsGenerated: 0,
+    activeCampaigns: 0,
+  };
+
+  if (user.role === "CLIPPER") {
+    try {
+      const [submissionCounts, viewsAggregate, activeCampaignCount] = await Promise.all([
+        prisma.campaignSubmission.groupBy({
+          by: ["status"],
+          where: { clipperId: id },
+          _count: true,
+        }),
+        prisma.campaignSubmission.aggregate({
+          where: { clipperId: id },
+          _sum: { latestViewCount: true },
+        }),
+        prisma.campaignSubmission.count({
+          where: {
+            clipperId: id,
+            status: { in: ["JOINED", "SUBMITTED", "IN_REVIEW"] },
+          },
+        }),
+      ]);
+
+      const totalSubmissions = submissionCounts.reduce((sum, g) => sum + g._count, 0);
+      const approvedCount = submissionCounts
+        .filter((g) => g.status === "APPROVED" || g.status === "PAID")
+        .reduce((sum, g) => sum + g._count, 0);
+
+      clipperStats = {
+        totalSubmissions,
+        approvedCount,
+        approvalRate: totalSubmissions > 0 ? Math.round((approvedCount / totalSubmissions) * 100) : null,
+        totalViewsGenerated: viewsAggregate._sum.latestViewCount ?? 0,
+        activeCampaigns: activeCampaignCount,
+      };
+    } catch {
+      // Stats queries may fail if tables don't exist yet — keep defaults
+    }
+  }
+
   const session = await auth();
   const isOwnProfile = session?.user?.id === user.id;
   const displayName = user.nickname || "사용자";
@@ -181,6 +250,7 @@ export default async function PublicProfilePage({
   const kp = user.clipperProfile;
   const isCreator = user.role === "CREATOR";
   const isClipper = user.role === "CLIPPER";
+  const portfolioItems = kp?.portfolioItems ?? [];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -244,60 +314,104 @@ export default async function PublicProfilePage({
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {isCreator && (
-          <>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold flex items-center justify-center gap-1">
-                  {cp?.averageRating ? (
-                    <><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />{cp.averageRating.toFixed(1)}</>
-                  ) : "-"}
-                </p>
-                <p className="text-xs text-muted-foreground">평균 평점</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold">{cp?.totalProjectsPosted ?? 0}</p>
-                <p className="text-xs text-muted-foreground">등록 캠페인</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold">{user._count.reviewsReceived}</p>
-                <p className="text-xs text-muted-foreground">받은 리뷰</p>
-              </CardContent>
-            </Card>
-          </>
-        )}
-        {isClipper && (
-          <>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold flex items-center justify-center gap-1">
+      {isCreator && (
+        <div className="grid grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <p className="text-2xl font-bold flex items-center justify-center gap-1">
+                {cp?.averageRating ? (
+                  <><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />{Number(cp.averageRating).toFixed(1)}</>
+                ) : "-"}
+              </p>
+              <p className="text-xs text-muted-foreground">평균 평점</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <p className="text-2xl font-bold">{cp?.totalProjectsPosted ?? 0}</p>
+              <p className="text-xs text-muted-foreground">등록 캠페인</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <p className="text-2xl font-bold">{user._count.reviewsReceived}</p>
+              <p className="text-xs text-muted-foreground">받은 리뷰</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {isClipper && (
+        <Card>
+          <CardContent className="pt-5 pb-5">
+            {/* Row 1: Trust signals */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <p className="flex items-center justify-center gap-1 text-xl font-bold">
                   {kp?.averageRating ? (
-                    <><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />{kp.averageRating.toFixed(1)}</>
-                  ) : "-"}
+                    <>
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      {Number(kp.averageRating).toFixed(1)}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">평균 평점</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold">{kp?.totalProjectsCompleted ?? 0}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <p className={`text-xl font-bold ${clipperStats.approvalRate !== null && clipperStats.approvalRate >= 70 ? "text-green-600" : ""}`}>
+                  {clipperStats.approvalRate !== null ? `${clipperStats.approvalRate}%` : "-"}
+                </p>
+                <p className="text-xs text-muted-foreground">승인율</p>
+                {clipperStats.totalSubmissions > 0 && (
+                  <p className="text-[10px] text-muted-foreground">{clipperStats.approvedCount}/{clipperStats.totalSubmissions}</p>
+                )}
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <p className="text-xl font-bold">{kp?.totalProjectsCompleted ?? 0}</p>
                 <p className="text-xs text-muted-foreground">완료 캠페인</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold">{user._count.reviewsReceived}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <p className="text-xl font-bold">{user._count.reviewsReceived}</p>
                 <p className="text-xs text-muted-foreground">받은 리뷰</p>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
+              </div>
+            </div>
+
+            {/* Row 2: Capability signals */}
+            <div className="mt-3 grid grid-cols-4 gap-3">
+              <div className="rounded-lg border p-3 text-center">
+                <p className="text-xl font-bold">
+                  {clipperStats.totalViewsGenerated > 0
+                    ? `${formatViewsCompact(clipperStats.totalViewsGenerated)}회`
+                    : "-"}
+                </p>
+                <p className="text-xs text-muted-foreground">총 조회수</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <p className="text-xl font-bold">
+                  {portfolioItems.length > 0
+                    ? `${formatViewsCompact(Math.round(portfolioItems.reduce((s: number, p: any) => s + (p.viewCount ?? 0), 0) / portfolioItems.length))}회`
+                    : "-"}
+                </p>
+                <p className="text-xs text-muted-foreground">클립 평균 조회</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <p className="text-xl font-bold">
+                  {getRelativeDuration(user.createdAt)}
+                </p>
+                <p className="text-xs text-muted-foreground">활동 기간</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <p className={`text-xl font-bold ${clipperStats.activeCampaigns >= 3 ? "text-orange-600" : ""}`}>
+                  {clipperStats.activeCampaigns}개
+                </p>
+                <p className="text-xs text-muted-foreground">진행 중</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Empty state when no profile details filled in */}
       {isClipper && !kp && user.socialConnections.length === 0 && (
