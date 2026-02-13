@@ -158,7 +158,17 @@ export const submitToCampaignSchema = z.object({
 
 export const reviewSubmissionSchema = z.object({
   status: z.enum(["APPROVED", "REVISION_REQ", "REJECTED"]),
-  revisionNotes: z.string().optional(),
+  revisionNotes: z.string().trim().optional(),
+}).superRefine((data, ctx) => {
+  if (data.status === "APPROVED") return;
+  const notes = data.revisionNotes ?? "";
+  if (notes.length < 5) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["revisionNotes"],
+      message: "수정 요청/반려 시 사유를 5자 이상 입력해주세요.",
+    });
+  }
 });
 
 export const walletDepositSchema = z.object({

@@ -81,6 +81,8 @@ const CAMPAIGN_TYPE_COLORS: Record<string, string> = {
   HYBRID: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
+const MIN_REVIEW_REASON_LENGTH = 5;
+
 const TIER_LABELS: Record<string, { label: string; color: string }> = {
   BRONZE: { label: "브론즈", color: "bg-orange-100 text-orange-700 border-orange-200" },
   SILVER: { label: "실버", color: "bg-gray-100 text-gray-600 border-gray-200" },
@@ -212,7 +214,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [pendingDecision, setPendingDecision] = useState<"REVISION_REQ" | "REJECTED" | null>(null);
   const [revisionNotes, setRevisionNotes] = useState("");
   const canReview = sub.isCreator && ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
   const clipperName = sub.clipper.nickname ?? sub.clipper.name ?? "사용자";
@@ -257,7 +259,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
         throw new Error(data.error || "오류가 발생했습니다");
       }
       router.refresh();
-      setShowRevisionForm(false);
+      setPendingDecision(null);
       setRevisionNotes("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
@@ -793,7 +795,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                 <CardTitle>리뷰</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!showRevisionForm ? (
+                {!pendingDecision ? (
                   <div className="flex gap-3">
                     <Button
                       className="gap-2"
@@ -806,7 +808,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                     <Button
                       variant="outline"
                       className="gap-2"
-                      onClick={() => setShowRevisionForm(true)}
+                      onClick={() => setPendingDecision("REVISION_REQ")}
                       disabled={loading}
                     >
                       <RotateCcw className="h-4 w-4" />
@@ -815,7 +817,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                     <Button
                       variant="destructive"
                       className="gap-2"
-                      onClick={() => setShowRevisionForm(true)}
+                      onClick={() => setPendingDecision("REJECTED")}
                       disabled={loading}
                     >
                       <ThumbsDown className="h-4 w-4" />
@@ -827,31 +829,27 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                     <Textarea
                       value={revisionNotes}
                       onChange={(e) => setRevisionNotes(e.target.value)}
-                      placeholder="사유를 입력해주세요..."
+                      placeholder={
+                        pendingDecision === "REJECTED"
+                          ? "반려 사유를 입력해주세요 (최소 5자)"
+                          : "수정 요청 사항을 입력해주세요 (최소 5자)"
+                      }
                       rows={3}
                     />
+                    <p className="text-xs text-muted-foreground">사유는 최소 5자 이상 입력해야 합니다.</p>
                     <div className="flex gap-3">
                       <Button
-                        variant="outline"
+                        variant={pendingDecision === "REJECTED" ? "destructive" : "outline"}
                         className="gap-2"
-                        onClick={() => handleReview("REVISION_REQ")}
-                        disabled={loading || !revisionNotes.trim()}
+                        onClick={() => pendingDecision && handleReview(pendingDecision)}
+                        disabled={loading || revisionNotes.trim().length < MIN_REVIEW_REASON_LENGTH}
                       >
-                        <RotateCcw className="h-4 w-4" />
-                        수정 요청
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        className="gap-2"
-                        onClick={() => handleReview("REJECTED")}
-                        disabled={loading || !revisionNotes.trim()}
-                      >
-                        <ThumbsDown className="h-4 w-4" />
-                        반려
+                        {pendingDecision === "REJECTED" ? <ThumbsDown className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
+                        {pendingDecision === "REJECTED" ? "반려 확정" : "수정 요청 보내기"}
                       </Button>
                       <Button
                         variant="ghost"
-                        onClick={() => { setShowRevisionForm(false); setRevisionNotes(""); }}
+                        onClick={() => { setPendingDecision(null); setRevisionNotes(""); }}
                       >
                         취소
                       </Button>

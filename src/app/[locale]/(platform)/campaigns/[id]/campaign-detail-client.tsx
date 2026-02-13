@@ -76,6 +76,8 @@ const SUB_STATUS_LABELS: Record<string, string> = {
   PAID: "지급 완료",
 };
 
+const MIN_REVIEW_REASON_LENGTH = 5;
+
 interface Submission {
   id: string;
   status: string;
@@ -327,7 +329,7 @@ function SubmissionReviewCard({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [pendingDecision, setPendingDecision] = useState<"REVISION_REQ" | "REJECTED" | null>(null);
   const [revisionNotes, setRevisionNotes] = useState("");
 
   const canReview = ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
@@ -352,6 +354,8 @@ function SubmissionReviewCard({
         throw new Error(data.error || "오류가 발생했습니다");
       }
       router.refresh();
+      setPendingDecision(null);
+      setRevisionNotes("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
     } finally {
@@ -417,7 +421,7 @@ function SubmissionReviewCard({
       )}
 
       {/* Review actions for SUBMITTED / IN_REVIEW submissions */}
-      {canReview && !showRevisionForm && (
+      {canReview && !pendingDecision && (
         <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
@@ -432,7 +436,7 @@ function SubmissionReviewCard({
             size="sm"
             variant="outline"
             className="gap-1"
-            onClick={() => setShowRevisionForm(true)}
+            onClick={() => setPendingDecision("REVISION_REQ")}
             disabled={loading}
           >
             <RotateCcw className="h-3.5 w-3.5" />
@@ -442,7 +446,7 @@ function SubmissionReviewCard({
             size="sm"
             variant="destructive"
             className="gap-1"
-            onClick={() => setShowRevisionForm(true)}
+            onClick={() => setPendingDecision("REJECTED")}
             disabled={loading}
           >
             <ThumbsDown className="h-3.5 w-3.5" />
@@ -452,39 +456,33 @@ function SubmissionReviewCard({
       )}
 
       {/* Revision / rejection notes form */}
-      {canReview && showRevisionForm && (
+      {canReview && pendingDecision && (
         <div className="space-y-2 pt-1" onClick={(e) => e.stopPropagation()}>
           <Textarea
             value={revisionNotes}
             onChange={(e) => setRevisionNotes(e.target.value)}
-            placeholder="사유를 입력해주세요..."
+            placeholder={
+              pendingDecision === "REJECTED"
+                ? "반려 사유를 입력해주세요 (최소 5자)"
+                : "수정 요청 사항을 입력해주세요 (최소 5자)"
+            }
             rows={2}
           />
           <div className="flex gap-2">
             <Button
               size="sm"
-              variant="outline"
+              variant={pendingDecision === "REJECTED" ? "destructive" : "outline"}
               className="gap-1"
-              onClick={() => handleReview("REVISION_REQ")}
-              disabled={loading || !revisionNotes.trim()}
+              onClick={() => handleReview(pendingDecision)}
+              disabled={loading || revisionNotes.trim().length < MIN_REVIEW_REASON_LENGTH}
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              수정 요청
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="gap-1"
-              onClick={() => handleReview("REJECTED")}
-              disabled={loading || !revisionNotes.trim()}
-            >
-              <ThumbsDown className="h-3.5 w-3.5" />
-              반려
+              {pendingDecision === "REJECTED" ? <ThumbsDown className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              {pendingDecision === "REJECTED" ? "반려 확정" : "수정 요청"}
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => { setShowRevisionForm(false); setRevisionNotes(""); }}
+              onClick={() => { setPendingDecision(null); setRevisionNotes(""); }}
             >
               취소
             </Button>
