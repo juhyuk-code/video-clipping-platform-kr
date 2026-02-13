@@ -77,19 +77,6 @@ export async function GET() {
 
   if (!fullUser) return apiError("User not found", 404);
 
-  // Legacy cleanup: normalize deprecated BOTH role to CREATOR.
-  if ((fullUser as any).role === "BOTH") {
-    try {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { role: "CREATOR" },
-      });
-      (fullUser as any).role = "CREATOR";
-    } catch (err) {
-      console.error("Failed to normalize legacy BOTH role:", err);
-    }
-  }
-
   return apiResponse(fullUser);
 }
 

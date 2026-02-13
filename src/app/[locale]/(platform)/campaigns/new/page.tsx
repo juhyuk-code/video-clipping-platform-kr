@@ -69,19 +69,33 @@ export default function NewCampaignPage() {
     setError(null);
 
     const form = new FormData(e.currentTarget);
+    const sourceVideoUrl = (form.get("sourceVideoUrl") as string).trim();
+    const totalBudget = Number(form.get("totalBudget"));
     const body: Record<string, unknown> = {
       title: form.get("title") as string,
       description: form.get("description") as string,
       guidelines: form.get("guidelines") as string,
       type: campaignType,
-      sourceVideoUrl: (form.get("sourceVideoUrl") as string) || undefined,
+      sourceVideoUrl: sourceVideoUrl || undefined,
       targetPlatforms: selectedPlatforms.length > 0 ? selectedPlatforms : ["YOUTUBE_SHORTS"],
       contentCategory: (form.get("category") as string) || undefined,
       deadline: new Date(form.get("deadline") as string).toISOString(),
-      totalBudget: Number(form.get("totalBudget")) || undefined,
+      totalBudget: Number.isFinite(totalBudget) && totalBudget > 0 ? totalBudget : undefined,
       maxParticipants: Number(form.get("maxParticipants")) || undefined,
       maxClipsPerUser: Number(form.get("maxClipsPerUser")) || 1,
     };
+
+    if (!body.totalBudget) {
+      setError("총 예산은 필수이며 0보다 커야 합니다.");
+      setSubmitting(false);
+      return;
+    }
+
+    if ((campaignType === "PROJECT" || campaignType === "HYBRID") && !sourceVideoUrl) {
+      setError("프로젝트/하이브리드 캠페인은 원본 영상 링크가 필요합니다.");
+      setSubmitting(false);
+      return;
+    }
 
     // Type-specific fields
     if (campaignType === "PROJECT" || campaignType === "HYBRID") {
@@ -173,7 +187,12 @@ export default function NewCampaignPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">{t("fields.sourceVideo")}</label>
-              <Input name="sourceVideoUrl" type="url" placeholder="YouTube, Twitch, AfreecaTV URL" />
+              <Input
+                name="sourceVideoUrl"
+                type="url"
+                placeholder="YouTube, Twitch, AfreecaTV URL"
+                required={campaignType === "PROJECT" || campaignType === "HYBRID"}
+              />
             </div>
           </CardContent>
         </Card>
@@ -223,7 +242,7 @@ export default function NewCampaignPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t("fields.totalBudget")}</label>
-                <Input name="totalBudget" type="number" placeholder="1000000" min={0} />
+                <Input name="totalBudget" type="number" placeholder="1000000" min={1} required />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t("fields.deadline")}</label>
