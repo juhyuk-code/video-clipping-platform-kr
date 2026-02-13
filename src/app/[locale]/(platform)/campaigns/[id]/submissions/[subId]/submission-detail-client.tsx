@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { formatKRW } from "@/lib/utils";
 import { Sheet } from "@/components/ui/sheet";
-import { ProfileFull, type ProfileData } from "@/components/profile/profile-content";
+import { ProfileComplete, type ProfileData, type ClipperStats } from "@/components/profile/profile-content";
 import { ViewChart } from "@/components/charts/view-chart";
 import { StatsGrid } from "@/components/charts/stats-grid";
 import {
@@ -166,6 +166,13 @@ interface SubmissionData {
     } | null;
   };
   clipperProfile: ProfileData;
+  clipperStats: {
+    totalSubmissions: number;
+    approvedCount: number;
+    approvalRate: number | null;
+    totalViewsGenerated: number;
+    activeCampaigns: number;
+  };
   snapshots: {
     viewCount: number;
     capturedAt: string;
@@ -181,6 +188,23 @@ function getInitials(name?: string | null): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
+}
+
+function formatViewsCompact(n: number): string {
+  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}천`;
+  return String(n);
+}
+
+function getRelativeDuration(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days < 30) return `${days}일`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}개월`;
+  const years = Math.floor(months / 12);
+  const remainMonths = months % 12;
+  return remainMonths > 0 ? `${years}년 ${remainMonths}개월` : `${years}년`;
 }
 
 // ─── Component ───────────────────────────────────────────────
@@ -249,13 +273,13 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
 
   return (
     <>
-      {/* Profile Sheet (full profile slide-in) */}
+      {/* Profile Sheet (comprehensive deep-dive) */}
       <Sheet
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
         title={`${clipperName}의 프로필`}
       >
-        <ProfileFull profile={sub.clipperProfile} />
+        <ProfileComplete profile={sub.clipperProfile} stats={sub.clipperStats} />
       </Sheet>
 
       {/* ══════════════════════════════════════════════════════
@@ -348,28 +372,66 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
               </div>
             </div>
 
-            {/* Stats row */}
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <p className="flex items-center justify-center gap-1 text-lg font-bold">
+            {/* Stats — Row 1: Trust signals */}
+            <div className="mt-4 grid grid-cols-4 gap-2">
+              <div className="rounded-lg bg-muted/50 p-2.5 text-center">
+                <p className="flex items-center justify-center gap-1 text-base font-bold">
                   {kp?.averageRating ? (
                     <>
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                       {kp.averageRating.toFixed(1)}
                     </>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
                 </p>
-                <p className="text-xs text-muted-foreground">평균 평점</p>
+                <p className="text-[11px] text-muted-foreground">평균 평점</p>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <p className="text-lg font-bold">{kp?.totalProjectsCompleted ?? 0}</p>
-                <p className="text-xs text-muted-foreground">완료 캠페인</p>
+              <div className="rounded-lg bg-muted/50 p-2.5 text-center">
+                <p className={`text-base font-bold ${sub.clipperStats.approvalRate !== null && sub.clipperStats.approvalRate >= 70 ? "text-green-600" : ""}`}>
+                  {sub.clipperStats.approvalRate !== null ? `${sub.clipperStats.approvalRate}%` : "-"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">승인율</p>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <p className="text-lg font-bold">{profileData._count?.reviewsReceived ?? 0}</p>
-                <p className="text-xs text-muted-foreground">받은 리뷰</p>
+              <div className="rounded-lg bg-muted/50 p-2.5 text-center">
+                <p className="text-base font-bold">{kp?.totalProjectsCompleted ?? 0}</p>
+                <p className="text-[11px] text-muted-foreground">완료 캠페인</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-2.5 text-center">
+                <p className="text-base font-bold">{profileData._count?.reviewsReceived ?? 0}</p>
+                <p className="text-[11px] text-muted-foreground">받은 리뷰</p>
+              </div>
+            </div>
+
+            {/* Stats — Row 2: Capability signals */}
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              <div className="rounded-lg border p-2.5 text-center">
+                <p className="text-base font-bold">
+                  {sub.clipperStats.totalViewsGenerated > 0
+                    ? `${formatViewsCompact(sub.clipperStats.totalViewsGenerated)}회`
+                    : "-"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">총 조회수</p>
+              </div>
+              <div className="rounded-lg border p-2.5 text-center">
+                <p className="text-base font-bold">
+                  {portfolioItems.length > 0
+                    ? `${formatViewsCompact(Math.round(portfolioItems.reduce((s, p) => s + (p.viewCount ?? 0), 0) / portfolioItems.length))}회`
+                    : "-"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">클립 평균 조회</p>
+              </div>
+              <div className="rounded-lg border p-2.5 text-center">
+                <p className="text-base font-bold">
+                  {getRelativeDuration(profileData.createdAt)}
+                </p>
+                <p className="text-[11px] text-muted-foreground">활동 기간</p>
+              </div>
+              <div className="rounded-lg border p-2.5 text-center">
+                <p className={`text-base font-bold ${sub.clipperStats.activeCampaigns >= 3 ? "text-orange-600" : ""}`}>
+                  {sub.clipperStats.activeCampaigns}개
+                </p>
+                <p className="text-[11px] text-muted-foreground">진행 중</p>
               </div>
             </div>
           </div>

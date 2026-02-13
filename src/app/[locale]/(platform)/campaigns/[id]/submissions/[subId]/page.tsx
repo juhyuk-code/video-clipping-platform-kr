@@ -107,6 +107,32 @@ export default async function SubmissionDetailPage({
   const isClipper = submission.clipperId === session.user.id;
   if (!isCreator && !isClipper) notFound();
 
+  // Fetch additional clipper stats in parallel (for creator view)
+  const clipperId = submission.clipperId;
+  const [submissionCounts, viewsAggregate, activeCampaignCount] = await Promise.all([
+    prisma.campaignSubmission.groupBy({
+      by: ["status"],
+      where: { clipperId },
+      _count: true,
+    }),
+    prisma.campaignSubmission.aggregate({
+      where: { clipperId },
+      _sum: { latestViewCount: true },
+    }),
+    prisma.campaignSubmission.count({
+      where: {
+        clipperId,
+        status: { in: ["JOINED", "SUBMITTED", "IN_REVIEW"] },
+        NOT: { id: submission.id },
+      },
+    }),
+  ]);
+
+  const totalSubmissions = submissionCounts.reduce((sum, g) => sum + g._count, 0);
+  const approvedCount = submissionCounts
+    .filter((g) => g.status === "APPROVED" || g.status === "PAID")
+    .reduce((sum, g) => sum + g._count, 0);
+
   // Serialize for client
   const data = {
     id: submission.id,
@@ -185,6 +211,13 @@ export default async function SubmissionDetailPage({
       viewCount: s.viewCount,
       capturedAt: s.capturedAt.toISOString(),
     })),
+    clipperStats: {
+      totalSubmissions,
+      approvedCount,
+      approvalRate: totalSubmissions > 0 ? Math.round((approvedCount / totalSubmissions) * 100) : null,
+      totalViewsGenerated: viewsAggregate._sum.latestViewCount ?? 0,
+      activeCampaigns: activeCampaignCount,
+    },
     isCreator,
     isClipper,
   };
