@@ -78,8 +78,16 @@ export function ClipEmbed({ clipUrl, title = "Clip Embed", className }: ClipEmbe
   const info = getClipEmbedInfo(clipUrl);
   if (!info) return null;
 
+  const sizeClass =
+    info.aspectRatio === "9 / 16"
+      ? "mx-auto w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[420px]"
+      : "mx-auto w-full max-w-4xl";
+
   return (
-    <div className={cn("overflow-hidden rounded-lg border bg-black", className)} style={{ aspectRatio: info.aspectRatio }}>
+    <div
+      className={cn("overflow-hidden rounded-lg border bg-black", sizeClass, className)}
+      style={{ aspectRatio: info.aspectRatio }}
+    >
       <iframe
         src={info.embedUrl}
         title={title}
@@ -92,4 +100,3 @@ export function ClipEmbed({ clipUrl, title = "Clip Embed", className }: ClipEmbe
     </div>
   );
 }
-
