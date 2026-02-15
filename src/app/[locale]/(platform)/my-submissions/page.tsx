@@ -22,7 +22,9 @@ import { formatKRW } from "@/lib/utils";
 
 const SUB_STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   APPLIED: "outline",
+  APPLICATION_REJECTED: "destructive",
   JOINED: "secondary",
+  WITHDRAWN: "outline",
   SUBMITTED: "default",
   IN_REVIEW: "secondary",
   APPROVED: "default",
@@ -54,7 +56,7 @@ async function getMySubmissions(userId: string) {
     ["APPLIED", "JOINED", "SUBMITTED", "IN_REVIEW", "REVISION_REQ"].includes(s.status)
   ).length;
   const completedCampaigns = submissions.filter((s) =>
-    ["APPROVED", "PAID"].includes(s.status)
+    ["APPROVED", "PAID", "REJECTED", "APPLICATION_REJECTED", "WITHDRAWN"].includes(s.status)
   ).length;
 
   return { submissions, totalEarned, activeCampaigns, completedCampaigns };

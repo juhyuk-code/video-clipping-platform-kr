@@ -246,7 +246,9 @@
       "requestRevision": "Request Revision",
       "status": {
         "APPLIED": "Applied",
+        "APPLICATION_REJECTED": "Application Rejected",
         "JOINED": "Joined",
+        "WITHDRAWN": "Withdrawn",
         "SUBMITTED": "Submitted",
         "IN_REVIEW": "In Review",
         "APPROVED": "Approved",

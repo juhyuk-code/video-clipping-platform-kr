@@ -42,7 +42,9 @@ const STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destr
 
 const SUB_STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   APPLIED: "outline",
+  APPLICATION_REJECTED: "destructive",
   JOINED: "secondary",
+  WITHDRAWN: "outline",
   SUBMITTED: "default",
   IN_REVIEW: "secondary",
   APPROVED: "default",
@@ -67,7 +69,9 @@ const STATUS_LABELS: Record<string, string> = {
 
 const SUB_STATUS_LABELS: Record<string, string> = {
   APPLIED: "지원 중",
+  APPLICATION_REJECTED: "지원 반려",
   JOINED: "참여 중",
+  WITHDRAWN: "철회됨",
   SUBMITTED: "제출됨",
   IN_REVIEW: "검토 중",
   APPROVED: "승인됨",
@@ -84,9 +88,14 @@ interface Submission {
   clipTitle: string | null;
   clipUrl: string | null;
   pitch: string | null;
+  proposedPrice: number | null;
   latestViewCount: number;
   totalPaid: number;
   revisionNotes: string | null;
+  applicationDecisionNotes: string | null;
+  applicationReviewedAt: string | null;
+  joinedAt: string | null;
+  withdrawnAt: string | null;
   createdAt: string;
   clipper: {
     id: string;
@@ -123,6 +132,7 @@ interface CampaignData {
     id: string;
     status: string;
     revisionNotes: string | null;
+    applicationDecisionNotes: string | null;
   } | null;
 }
 
@@ -206,11 +216,11 @@ export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
           {showCreatorView && (
             <Card>
               <CardHeader>
-                <CardTitle>제출 현황 ({campaign.submissions.length})</CardTitle>
+                <CardTitle>지원/제출 현황 ({campaign.submissions.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 {campaign.submissions.length === 0 ? (
-                  <p className="py-8 text-center text-muted-foreground">아직 제출된 클립이 없습니다</p>
+                  <p className="py-8 text-center text-muted-foreground">아직 지원/제출 내역이 없습니다</p>
                 ) : (
                   <div className="space-y-4">
                     {campaign.submissions.map((sub) => (
@@ -329,10 +339,42 @@ function SubmissionReviewCard({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingDecision, setPendingDecision] = useState<"REVISION_REQ" | "REJECTED" | null>(null);
-  const [revisionNotes, setRevisionNotes] = useState("");
+  const [pendingReviewDecision, setPendingReviewDecision] = useState<"REVISION_REQ" | "REJECTED" | null>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [showAdmissionRejectForm, setShowAdmissionRejectForm] = useState(false);
+  const [admissionRejectReason, setAdmissionRejectReason] = useState("");
 
+  const canAdmit = sub.status === "APPLIED";
   const canReview = ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
+
+  async function handleAdmission(decision: "ACCEPT" | "REJECT") {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/v1/campaigns/${campaignId}/submissions/${sub.id}/admission`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision,
+            reason: decision === "REJECT" ? admissionRejectReason : undefined,
+          }),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "오류가 발생했습니다");
+      }
+      router.refresh();
+      setShowAdmissionRejectForm(false);
+      setAdmissionRejectReason("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleReview(status: "APPROVED" | "REVISION_REQ" | "REJECTED") {
     setLoading(true);
@@ -345,7 +387,7 @@ function SubmissionReviewCard({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             status,
-            revisionNotes: status !== "APPROVED" ? revisionNotes : undefined,
+            revisionNotes: status !== "APPROVED" ? reviewNotes : undefined,
           }),
         }
       );
@@ -354,8 +396,8 @@ function SubmissionReviewCard({
         throw new Error(data.error || "오류가 발생했습니다");
       }
       router.refresh();
-      setPendingDecision(null);
-      setRevisionNotes("");
+      setPendingReviewDecision(null);
+      setReviewNotes("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
     } finally {
@@ -381,6 +423,9 @@ function SubmissionReviewCard({
           )}
           {sub.pitch && (
             <p className="text-sm text-muted-foreground line-clamp-2">{sub.pitch}</p>
+          )}
+          {sub.proposedPrice != null && sub.proposedPrice > 0 && (
+            <p className="text-xs text-muted-foreground">희망 금액: {formatKRW(sub.proposedPrice)}</p>
           )}
           {sub.clipUrl && (
             <a
@@ -420,8 +465,63 @@ function SubmissionReviewCard({
         </div>
       )}
 
+      {/* Admission actions for APPLIED submissions */}
+      {canAdmit && !showAdmissionRejectForm && (
+        <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            size="sm"
+            className="gap-1"
+            onClick={() => handleAdmission("ACCEPT")}
+            disabled={loading}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" />
+            지원 승인
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1"
+            onClick={() => setShowAdmissionRejectForm(true)}
+            disabled={loading}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" />
+            지원 반려
+          </Button>
+        </div>
+      )}
+
+      {canAdmit && showAdmissionRejectForm && (
+        <div className="space-y-2 pt-1" onClick={(e) => e.stopPropagation()}>
+          <Textarea
+            value={admissionRejectReason}
+            onChange={(e) => setAdmissionRejectReason(e.target.value)}
+            placeholder="지원 반려 사유를 입력해주세요 (최소 5자)"
+            rows={2}
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              className="gap-1"
+              onClick={() => handleAdmission("REJECT")}
+              disabled={loading || admissionRejectReason.trim().length < MIN_REVIEW_REASON_LENGTH}
+            >
+              <ThumbsDown className="h-3.5 w-3.5" />
+              반려 확정
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => { setShowAdmissionRejectForm(false); setAdmissionRejectReason(""); }}
+            >
+              취소
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Review actions for SUBMITTED / IN_REVIEW submissions */}
-      {canReview && !pendingDecision && (
+      {canReview && !pendingReviewDecision && (
         <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
@@ -436,7 +536,7 @@ function SubmissionReviewCard({
             size="sm"
             variant="outline"
             className="gap-1"
-            onClick={() => setPendingDecision("REVISION_REQ")}
+            onClick={() => setPendingReviewDecision("REVISION_REQ")}
             disabled={loading}
           >
             <RotateCcw className="h-3.5 w-3.5" />
@@ -446,7 +546,7 @@ function SubmissionReviewCard({
             size="sm"
             variant="destructive"
             className="gap-1"
-            onClick={() => setPendingDecision("REJECTED")}
+            onClick={() => setPendingReviewDecision("REJECTED")}
             disabled={loading}
           >
             <ThumbsDown className="h-3.5 w-3.5" />
@@ -456,13 +556,13 @@ function SubmissionReviewCard({
       )}
 
       {/* Revision / rejection notes form */}
-      {canReview && pendingDecision && (
+      {canReview && pendingReviewDecision && (
         <div className="space-y-2 pt-1" onClick={(e) => e.stopPropagation()}>
           <Textarea
-            value={revisionNotes}
-            onChange={(e) => setRevisionNotes(e.target.value)}
+            value={reviewNotes}
+            onChange={(e) => setReviewNotes(e.target.value)}
             placeholder={
-              pendingDecision === "REJECTED"
+              pendingReviewDecision === "REJECTED"
                 ? "반려 사유를 입력해주세요 (최소 5자)"
                 : "수정 요청 사항을 입력해주세요 (최소 5자)"
             }
@@ -471,18 +571,18 @@ function SubmissionReviewCard({
           <div className="flex gap-2">
             <Button
               size="sm"
-              variant={pendingDecision === "REJECTED" ? "destructive" : "outline"}
+              variant={pendingReviewDecision === "REJECTED" ? "destructive" : "outline"}
               className="gap-1"
-              onClick={() => handleReview(pendingDecision)}
-              disabled={loading || revisionNotes.trim().length < MIN_REVIEW_REASON_LENGTH}
+              onClick={() => handleReview(pendingReviewDecision)}
+              disabled={loading || reviewNotes.trim().length < MIN_REVIEW_REASON_LENGTH}
             >
-              {pendingDecision === "REJECTED" ? <ThumbsDown className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
-              {pendingDecision === "REJECTED" ? "반려 확정" : "수정 요청"}
+              {pendingReviewDecision === "REJECTED" ? <ThumbsDown className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              {pendingReviewDecision === "REJECTED" ? "반려 확정" : "수정 요청"}
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => { setPendingDecision(null); setRevisionNotes(""); }}
+              onClick={() => { setPendingReviewDecision(null); setReviewNotes(""); }}
             >
               취소
             </Button>
@@ -495,6 +595,12 @@ function SubmissionReviewCard({
         <div className="rounded border border-yellow-500 bg-yellow-50 p-2 text-xs dark:bg-yellow-900/20">
           <span className="font-medium text-yellow-800 dark:text-yellow-200">수정 요청: </span>
           <span className="text-yellow-700 dark:text-yellow-300">{sub.revisionNotes}</span>
+        </div>
+      )}
+      {sub.applicationDecisionNotes && sub.status === "APPLICATION_REJECTED" && (
+        <div className="rounded border border-red-500 bg-red-50 p-2 text-xs dark:bg-red-900/20">
+          <span className="font-medium text-red-800 dark:text-red-200">지원 반려 사유: </span>
+          <span className="text-red-700 dark:text-red-300">{sub.applicationDecisionNotes}</span>
         </div>
       )}
     </div>
