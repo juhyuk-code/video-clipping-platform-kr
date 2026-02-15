@@ -65,9 +65,14 @@ export default async function CampaignDetailPage({
       clipTitle: s.clipTitle,
       clipUrl: s.clipUrl,
       pitch: s.pitch,
+      proposedPrice: s.proposedPrice ? Number(s.proposedPrice) : null,
       latestViewCount: s.latestViewCount,
       totalPaid: Number(s.totalPaid),
       revisionNotes: s.revisionNotes,
+      applicationDecisionNotes: s.applicationDecisionNotes,
+      applicationReviewedAt: s.applicationReviewedAt?.toISOString() ?? null,
+      joinedAt: s.joinedAt?.toISOString() ?? null,
+      withdrawnAt: s.withdrawnAt?.toISOString() ?? null,
       createdAt: s.createdAt.toISOString(),
       clipper: s.clipper,
     })),
@@ -76,6 +81,7 @@ export default async function CampaignDetailPage({
           id: mySubmission.id,
           status: mySubmission.status,
           revisionNotes: mySubmission.revisionNotes,
+          applicationDecisionNotes: mySubmission.applicationDecisionNotes,
         }
       : null,
   };

@@ -75,16 +75,28 @@ export async function PUT(
 
   // ── Clipper submitting a clip ──
   if (isClipper && !isCreator) {
-    if (!["APPLIED", "JOINED", "REVISION_REQ"].includes(submission.status)) {
-      // Also allow re-submission if previously submitted
-      if (submission.status !== "SUBMITTED") {
-        return apiError("현재 상태에서는 클립을 제출할 수 없습니다");
-      }
+    if (submission.status === "APPLIED") {
+      return apiError("지원이 아직 승인되지 않았습니다. 승인 후 클립을 제출해주세요.");
+    }
+    if (submission.status === "APPLICATION_REJECTED") {
+      return apiError("반려된 지원서는 클립을 제출할 수 없습니다.");
+    }
+    if (submission.status === "WITHDRAWN") {
+      return apiError("철회된 지원서는 클립을 제출할 수 없습니다.");
+    }
+
+    if (!["JOINED", "REVISION_REQ", "SUBMITTED"].includes(submission.status)) {
+      return apiError("현재 상태에서는 클립을 제출할 수 없습니다");
+    }
+
+    if (submission.campaign.status !== "ACTIVE") {
+      return apiError("캠페인이 활성 상태가 아니어서 제출할 수 없습니다.");
     }
 
     const parsed = parseBody(submitToCampaignSchema, body);
     if ("error" in parsed) return apiError(parsed.error);
 
+    const isFirstSubmission = !submission.submittedAt;
     const updated = await prisma.$transaction(async (tx) => {
       const sub = await tx.campaignSubmission.update({
         where: { id: subId },
@@ -98,10 +110,12 @@ export async function PUT(
           submittedAt: new Date(),
         },
       });
-      await tx.campaign.update({
-        where: { id },
-        data: { submissionCount: { increment: 1 } },
-      });
+      if (isFirstSubmission) {
+        await tx.campaign.update({
+          where: { id },
+          data: { submissionCount: { increment: 1 } },
+        });
+      }
       return sub;
     });
 

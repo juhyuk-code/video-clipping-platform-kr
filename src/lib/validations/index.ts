@@ -144,7 +144,7 @@ export const campaignQuerySchema = z.object({
 });
 
 export const applyToCampaignSchema = z.object({
-  pitch: z.string().min(1).optional(),
+  pitch: z.string().trim().min(1),
   proposedPrice: z.number().int().positive().optional(),
 });
 
@@ -167,6 +167,21 @@ export const reviewSubmissionSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["revisionNotes"],
       message: "수정 요청/반려 시 사유를 5자 이상 입력해주세요.",
+    });
+  }
+});
+
+export const admissionDecisionSchema = z.object({
+  decision: z.enum(["ACCEPT", "REJECT"]),
+  reason: z.string().trim().optional(),
+}).superRefine((data, ctx) => {
+  if (data.decision === "ACCEPT") return;
+  const reason = data.reason ?? "";
+  if (reason.length < 5) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["reason"],
+      message: "지원 반려 시 사유를 5자 이상 입력해주세요.",
     });
   }
 });

@@ -448,7 +448,9 @@ model Campaign {
 
 enum SubmissionStatus {
   APPLIED
+  APPLICATION_REJECTED
   JOINED
+  WITHDRAWN
   SUBMITTED
   IN_REVIEW
   APPROVED
@@ -466,6 +468,10 @@ model CampaignSubmission {
   // Application data
   pitch            String?   @db.Text
   proposedPrice    Decimal?  @db.Decimal(12, 0)
+  applicationDecisionNotes String? @db.Text
+  applicationReviewedAt DateTime?
+  joinedAt         DateTime?
+  withdrawnAt      DateTime?
 
   // Submission data
   clipTitle        String?

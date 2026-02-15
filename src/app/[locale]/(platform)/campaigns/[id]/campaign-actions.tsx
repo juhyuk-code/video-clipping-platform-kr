@@ -22,6 +22,7 @@ interface Props {
     id: string;
     status: string;
     revisionNotes: string | null;
+    applicationDecisionNotes: string | null;
   } | null;
 }
 
@@ -205,8 +206,68 @@ export function CampaignActions({
     );
   }
 
-  // Already joined — show submit clip form
-  const canSubmit = ["APPLIED", "JOINED", "REVISION_REQ", "SUBMITTED"].includes(mySubmission.status);
+  if (mySubmission.status === "APPLIED") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>지원 상태</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {error && (
+            <div className="rounded-lg border border-destructive bg-destructive/10 p-2 text-xs text-destructive">
+              {error}
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground">
+            크리에이터의 승인 대기 중입니다. 승인되면 클립 제출이 열립니다.
+          </p>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => handleAction(`/api/v1/campaigns/${campaignId}/submissions/${mySubmission.id}/withdraw`, "PATCH")}
+            disabled={loading}
+          >
+            지원 철회
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (mySubmission.status === "APPLICATION_REJECTED") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>지원 반려됨</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">이번 캠페인 지원이 반려되었습니다.</p>
+          {mySubmission.applicationDecisionNotes && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <p className="font-medium">반려 사유</p>
+              <p>{mySubmission.applicationDecisionNotes}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (mySubmission.status === "WITHDRAWN") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>지원 철회됨</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">이 캠페인 지원을 철회했습니다.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Already admitted — show submit clip form
+  const canSubmit = ["JOINED", "REVISION_REQ", "SUBMITTED"].includes(mySubmission.status);
 
   return (
     <Card>
@@ -227,9 +288,21 @@ export function CampaignActions({
         )}
         {canSubmit ? (
           !showSubmitForm ? (
-            <Button className="w-full" onClick={() => setShowSubmitForm(true)}>
-              {t("actions.submitClip")}
-            </Button>
+            <div className="space-y-2">
+              <Button className="w-full" onClick={() => setShowSubmitForm(true)}>
+                {t("actions.submitClip")}
+              </Button>
+              {mySubmission.status === "JOINED" && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleAction(`/api/v1/campaigns/${campaignId}/submissions/${mySubmission.id}/withdraw`, "PATCH")}
+                  disabled={loading}
+                >
+                  참여 철회
+                </Button>
+              )}
+            </div>
           ) : (
             <form
               onSubmit={(e) => {

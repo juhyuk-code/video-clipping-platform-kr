@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { apiResponse, apiError, requireAuth, parseBody } from "@/lib/api/helpers";
-import { applyToCampaignSchema, submitToCampaignSchema } from "@/lib/validations";
+import { applyToCampaignSchema } from "@/lib/validations";
 
 // GET /api/v1/campaigns/[id]/submissions
 export async function GET(
@@ -47,10 +47,8 @@ export async function POST(
   if (!campaign) return apiError("Campaign not found", 404);
   if (campaign.status !== "ACTIVE") return apiError("이 캠페인은 현재 참여할 수 없습니다");
   if (campaign.creatorId === user.id) return apiError("자신의 캠페인에는 참여할 수 없습니다");
-
-  // Check max participants
-  if (campaign.maxParticipants && campaign.participantCount >= campaign.maxParticipants) {
-    return apiError("캠페인 최대 참여 인원에 도달했습니다");
+  if (campaign.deadline <= new Date()) {
+    return apiError("마감된 캠페인에는 참여할 수 없습니다");
   }
 
   // Check duplicate
@@ -63,12 +61,17 @@ export async function POST(
 
   if (campaign.type === "REWARD") {
     // REWARD type: auto-join, no application needed
+    if (campaign.maxParticipants && campaign.participantCount >= campaign.maxParticipants) {
+      return apiError("캠페인 최대 참여 인원에 도달했습니다");
+    }
+
     const submission = await prisma.$transaction(async (tx) => {
       const sub = await tx.campaignSubmission.create({
         data: {
           campaignId: id,
           clipperId: user.id,
           status: "JOINED",
+          joinedAt: new Date(),
         },
       });
       await tx.campaign.update({
@@ -93,10 +96,6 @@ export async function POST(
         pitch: parsed.data.pitch,
         proposedPrice: parsed.data.proposedPrice,
       },
-    });
-    await tx.campaign.update({
-      where: { id },
-      data: { participantCount: { increment: 1 } },
     });
     return sub;
   });

@@ -49,7 +49,9 @@ import {
 
 const STATUS_LABELS: Record<string, string> = {
   APPLIED: "지원 중",
+  APPLICATION_REJECTED: "지원 반려",
   JOINED: "참여 중",
+  WITHDRAWN: "철회됨",
   SUBMITTED: "제출됨",
   IN_REVIEW: "검토 중",
   APPROVED: "승인됨",
@@ -60,7 +62,9 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   APPLIED: "bg-blue-50 text-blue-700 border-blue-200",
+  APPLICATION_REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
   JOINED: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  WITHDRAWN: "bg-zinc-50 text-zinc-700 border-zinc-200",
   SUBMITTED: "bg-purple-50 text-purple-700 border-purple-200",
   IN_REVIEW: "bg-orange-50 text-orange-700 border-orange-200",
   APPROVED: "bg-green-50 text-green-700 border-green-200",
@@ -132,6 +136,10 @@ interface SubmissionData {
   reviewedAt: string | null;
   revisionNotes: string | null;
   revisionCount: number;
+  applicationDecisionNotes: string | null;
+  applicationReviewedAt: string | null;
+  joinedAt: string | null;
+  withdrawnAt: string | null;
   latestViewCount: number;
   fixedAmount: number | null;
   rewardAmount: number | null;
@@ -216,6 +224,9 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   const [error, setError] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<"REVISION_REQ" | "REJECTED" | null>(null);
   const [revisionNotes, setRevisionNotes] = useState("");
+  const [showAdmissionRejectForm, setShowAdmissionRejectForm] = useState(false);
+  const [admissionRejectReason, setAdmissionRejectReason] = useState("");
+  const canAdmit = sub.isCreator && sub.status === "APPLIED";
   const canReview = sub.isCreator && ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
   const clipperName = sub.clipper.nickname ?? sub.clipper.name ?? "사용자";
   const hasClip = !!sub.clipUrl || !!sub.clipFileUrl;
@@ -238,6 +249,35 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   );
 
   // ─── Handlers ────────────────────────────────────────────
+
+  async function handleAdmission(decision: "ACCEPT" | "REJECT") {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/v1/campaigns/${sub.campaign.id}/submissions/${sub.id}/admission`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision,
+            reason: decision === "REJECT" ? admissionRejectReason : undefined,
+          }),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "오류가 발생했습니다");
+      }
+      router.refresh();
+      setShowAdmissionRejectForm(false);
+      setAdmissionRejectReason("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleReview(status: "APPROVED" | "REVISION_REQ" | "REJECTED") {
     setLoading(true);
@@ -752,6 +792,19 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
               </CardContent>
             </Card>
           )}
+          {sub.applicationDecisionNotes && sub.status === "APPLICATION_REJECTED" && (
+            <Card className="border-red-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
+                  <AlertCircle className="h-5 w-5" />
+                  지원 반려 사유
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-wrap text-sm">{sub.applicationDecisionNotes}</p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* ─── 정산 정보 ─── */}
           {sub.totalPaid > 0 && (
@@ -783,6 +836,65 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                   <p className="text-xs text-muted-foreground">
                     {sub.isCreator ? "지급일" : "수령일"}: {new Date(sub.paidAt).toLocaleDateString("ko-KR")}
                   </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ─── 지원 심사 (creator only) ─── */}
+          {canAdmit && (
+            <Card className="border-primary/30">
+              <CardHeader className="pb-3">
+                <CardTitle>지원 심사</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!showAdmissionRejectForm ? (
+                  <div className="flex gap-3">
+                    <Button
+                      className="gap-2"
+                      onClick={() => handleAdmission("ACCEPT")}
+                      disabled={loading}
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                      지원 승인
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="gap-2"
+                      onClick={() => setShowAdmissionRejectForm(true)}
+                      disabled={loading}
+                    >
+                      <ThumbsDown className="h-4 w-4" />
+                      지원 반려
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={admissionRejectReason}
+                      onChange={(e) => setAdmissionRejectReason(e.target.value)}
+                      placeholder="지원 반려 사유를 입력해주세요 (최소 5자)"
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">사유는 최소 5자 이상 입력해야 합니다.</p>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="destructive"
+                        className="gap-2"
+                        onClick={() => handleAdmission("REJECT")}
+                        disabled={loading || admissionRejectReason.trim().length < MIN_REVIEW_REASON_LENGTH}
+                      >
+                        <ThumbsDown className="h-4 w-4" />
+                        반려 확정
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => { setShowAdmissionRejectForm(false); setAdmissionRejectReason(""); }}
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -964,9 +1076,43 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                   label="지원"
                   date={sub.createdAt}
                   isFirst
-                  isLast={!sub.submittedAt && !sub.reviewedAt && !sub.paidAt}
+                  isLast={
+                    !sub.applicationReviewedAt &&
+                    !sub.joinedAt &&
+                    !sub.withdrawnAt &&
+                    !sub.submittedAt &&
+                    !sub.reviewedAt &&
+                    !sub.paidAt
+                  }
                   active
                 />
+                {sub.applicationReviewedAt && (
+                  <TimelineItem
+                    label={sub.status === "APPLICATION_REJECTED" ? "지원 반려" : "지원 승인"}
+                    date={sub.applicationReviewedAt}
+                    isLast={!sub.joinedAt && !sub.withdrawnAt && !sub.submittedAt && !sub.reviewedAt && !sub.paidAt}
+                    active
+                    variant={sub.status === "APPLICATION_REJECTED" ? "destructive" : "success"}
+                  />
+                )}
+                {sub.joinedAt && !sub.applicationReviewedAt && (
+                  <TimelineItem
+                    label="참여 확정"
+                    date={sub.joinedAt}
+                    isLast={!sub.withdrawnAt && !sub.submittedAt && !sub.reviewedAt && !sub.paidAt}
+                    active
+                    variant="success"
+                  />
+                )}
+                {sub.withdrawnAt && (
+                  <TimelineItem
+                    label="지원 철회"
+                    date={sub.withdrawnAt}
+                    isLast={!sub.submittedAt && !sub.reviewedAt && !sub.paidAt}
+                    active
+                    variant="warning"
+                  />
+                )}
                 {sub.submittedAt && (
                   <TimelineItem
                     label="클립 제출"

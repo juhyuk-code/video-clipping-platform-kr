@@ -246,7 +246,9 @@
       "requestRevision": "수정 요청",
       "status": {
         "APPLIED": "지원 중",
+        "APPLICATION_REJECTED": "지원 반려",
         "JOINED": "참여 중",
+        "WITHDRAWN": "철회됨",
         "SUBMITTED": "제출됨",
         "IN_REVIEW": "검토 중",
         "APPROVED": "승인됨",
