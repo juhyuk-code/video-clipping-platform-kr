@@ -428,14 +428,16 @@ function SubmissionReviewCard({
             <p className="text-xs text-muted-foreground">희망 금액: {formatKRW(sub.proposedPrice)}</p>
           )}
           {sub.clipUrl && (
-            <a
-              href={sub.clipUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
               className="text-sm text-primary hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/campaigns/${campaignId}/submissions/${sub.id}`);
+              }}
             >
-              클립 보기
-            </a>
+              사이트에서 클립 보기
+            </button>
           )}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {sub.latestViewCount > 0 && (
