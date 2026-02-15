@@ -39,6 +39,7 @@ import { formatKRW } from "@/lib/utils";
 import { type ProfileData } from "@/components/profile/profile-content";
 import { ViewChart } from "@/components/charts/view-chart";
 import { StatsGrid } from "@/components/charts/stats-grid";
+import { ClipEmbed, getClipEmbedInfo } from "@/components/ui/clip-embed";
 import {
   calculateEstimatedEarnings,
   calculateViewVelocity,
@@ -230,6 +231,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   const canReview = sub.isCreator && ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
   const clipperName = sub.clipper.nickname ?? sub.clipper.name ?? "사용자";
   const hasClip = !!sub.clipUrl || !!sub.clipFileUrl;
+  const clipEmbedInfo = sub.clipUrl ? getClipEmbedInfo(sub.clipUrl) : null;
   const campaignType = sub.campaign.type;
 
   const kp = sub.clipper.clipperProfile;
@@ -648,13 +650,20 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                 {sub.clipTitle && (
                   <p className="font-medium">{sub.clipTitle}</p>
                 )}
+                {clipEmbedInfo ? (
+                  <ClipEmbed clipUrl={sub.clipUrl} title={sub.clipTitle ?? "Submitted Clip"} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    이 링크는 임베드를 지원하지 않아 외부 링크로 열어야 합니다.
+                  </p>
+                )}
                 <a
                   href={sub.clipUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg border bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
                 >
-                  클립 보기
+                  원본 링크 열기
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
                 {sub.targetPlatform && (
