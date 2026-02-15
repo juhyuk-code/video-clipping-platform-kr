@@ -37,12 +37,22 @@ export function CampaignActions({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
 
-  async function handleAction(url: string, method: string, body?: unknown) {
+  async function handleAction(
+    url: string,
+    method: string,
+    body?: unknown,
+    options?: {
+      onSuccess?: () => void;
+      successMessage?: string;
+    }
+  ) {
     setLoading(true);
     setError(null);
+    setSuccess(null);
     try {
       const res = await fetch(url, {
         method,
@@ -50,9 +60,11 @@ export function CampaignActions({
         body: body ? JSON.stringify(body) : undefined,
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "오류가 발생했습니다");
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || `요청에 실패했습니다. (${res.status})`);
       }
+      options?.onSuccess?.();
+      if (options?.successMessage) setSuccess(options.successMessage);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
@@ -72,6 +84,11 @@ export function CampaignActions({
           {error && (
             <div className="rounded-lg border border-destructive bg-destructive/10 p-2 text-xs text-destructive">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="rounded-lg border border-emerald-500 bg-emerald-50 p-2 text-xs text-emerald-700">
+              {success}
             </div>
           )}
           {campaignStatus === "DRAFT" && (
@@ -135,15 +152,24 @@ export function CampaignActions({
     if (campaignType === "REWARD") {
       return (
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="space-y-3 p-4">
             {error && (
-              <div className="mb-3 rounded-lg border border-destructive bg-destructive/10 p-2 text-xs text-destructive">
+              <div className="rounded-lg border border-destructive bg-destructive/10 p-2 text-xs text-destructive">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="rounded-lg border border-emerald-500 bg-emerald-50 p-2 text-xs text-emerald-700">
+                {success}
               </div>
             )}
             <Button
               className="w-full"
-              onClick={() => handleAction(`/api/v1/campaigns/${campaignId}/submissions`, "POST", {})}
+              onClick={() =>
+                handleAction(`/api/v1/campaigns/${campaignId}/submissions`, "POST", {}, {
+                  successMessage: "캠페인 참여가 완료되었습니다.",
+                })
+              }
               disabled={loading}
             >
               {t("actions.join")}
@@ -165,6 +191,11 @@ export function CampaignActions({
               {error}
             </div>
           )}
+          {success && (
+            <div className="mb-3 rounded-lg border border-emerald-500 bg-emerald-50 p-2 text-xs text-emerald-700">
+              {success}
+            </div>
+          )}
           {!showApplyForm ? (
             <Button className="w-full" onClick={() => setShowApplyForm(true)}>
               {t("actions.apply")}
@@ -177,6 +208,9 @@ export function CampaignActions({
                 handleAction(`/api/v1/campaigns/${campaignId}/submissions`, "POST", {
                   pitch: form.get("pitch"),
                   proposedPrice: Number(form.get("proposedPrice")) || undefined,
+                }, {
+                  onSuccess: () => setShowApplyForm(false),
+                  successMessage: "지원이 완료되었습니다. 크리에이터 승인을 기다려주세요.",
                 });
               }}
               className="space-y-3"
@@ -218,13 +252,22 @@ export function CampaignActions({
               {error}
             </div>
           )}
+          {success && (
+            <div className="rounded-lg border border-emerald-500 bg-emerald-50 p-2 text-xs text-emerald-700">
+              {success}
+            </div>
+          )}
           <p className="text-sm text-muted-foreground">
             크리에이터의 승인 대기 중입니다. 승인되면 클립 제출이 열립니다.
           </p>
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => handleAction(`/api/v1/campaigns/${campaignId}/submissions/${mySubmission.id}/withdraw`, "PATCH")}
+            onClick={() =>
+              handleAction(`/api/v1/campaigns/${campaignId}/submissions/${mySubmission.id}/withdraw`, "PATCH", undefined, {
+                successMessage: "지원을 철회했습니다.",
+              })
+            }
             disabled={loading}
           >
             지원 철회
@@ -241,6 +284,11 @@ export function CampaignActions({
           <CardTitle>지원 반려됨</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {success && (
+            <div className="rounded-lg border border-emerald-500 bg-emerald-50 p-2 text-xs text-emerald-700">
+              {success}
+            </div>
+          )}
           <p className="text-sm text-muted-foreground">이번 캠페인 지원이 반려되었습니다.</p>
           {mySubmission.applicationDecisionNotes && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
@@ -259,7 +307,12 @@ export function CampaignActions({
         <CardHeader>
           <CardTitle>지원 철회됨</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {success && (
+            <div className="rounded-lg border border-emerald-500 bg-emerald-50 p-2 text-xs text-emerald-700">
+              {success}
+            </div>
+          )}
           <p className="text-sm text-muted-foreground">이 캠페인 지원을 철회했습니다.</p>
         </CardContent>
       </Card>
@@ -280,6 +333,11 @@ export function CampaignActions({
             {error}
           </div>
         )}
+        {success && (
+          <div className="mb-3 rounded-lg border border-emerald-500 bg-emerald-50 p-2 text-xs text-emerald-700">
+            {success}
+          </div>
+        )}
         {mySubmission.revisionNotes && mySubmission.status === "REVISION_REQ" && (
           <div className="mb-3 rounded-lg border border-yellow-500 bg-yellow-50 p-3 text-sm dark:bg-yellow-900/20">
             <p className="font-medium text-yellow-800 dark:text-yellow-200">수정 요청:</p>
@@ -289,14 +347,30 @@ export function CampaignActions({
         {canSubmit ? (
           !showSubmitForm ? (
             <div className="space-y-2">
+              {mySubmission.status === "SUBMITTED" && (
+                <div className="rounded-lg border border-blue-500 bg-blue-50 p-3 text-sm text-blue-700">
+                  클립이 제출되었습니다. 크리에이터 검토를 기다려주세요.
+                </div>
+              )}
               <Button className="w-full" onClick={() => setShowSubmitForm(true)}>
-                {t("actions.submitClip")}
+                {mySubmission.status === "SUBMITTED" ? "제출 수정하기" : t("actions.submitClip")}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push(`/campaigns/${campaignId}/submissions/${mySubmission.id}`)}
+              >
+                제출 상세 보기
               </Button>
               {mySubmission.status === "JOINED" && (
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => handleAction(`/api/v1/campaigns/${campaignId}/submissions/${mySubmission.id}/withdraw`, "PATCH")}
+                  onClick={() =>
+                    handleAction(`/api/v1/campaigns/${campaignId}/submissions/${mySubmission.id}/withdraw`, "PATCH", undefined, {
+                      successMessage: "참여를 철회했습니다.",
+                    })
+                  }
                   disabled={loading}
                 >
                   참여 철회
@@ -312,6 +386,9 @@ export function CampaignActions({
                   clipTitle: form.get("clipTitle"),
                   clipUrl: form.get("clipUrl") || undefined,
                   targetPlatform: form.get("targetPlatform") || "YOUTUBE_SHORTS",
+                }, {
+                  onSuccess: () => setShowSubmitForm(false),
+                  successMessage: "클립을 제출했습니다. 크리에이터 검토를 기다려주세요.",
                 });
               }}
               className="space-y-3"
