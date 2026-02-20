@@ -25,6 +25,12 @@ const RANGE_CONFIGS: Record<ChartRangePreset, RangeConfig> = {
   "ALL": { rangeMs: null, bucketMs: 24 * 60 * 60 * 1000 },
 };
 
+const PRESET_WINDOW_POINTS: Record<Exclude<ChartRangePreset, "ALL">, number> = {
+  "2H": 24,
+  "24H": 48,
+  "7D": 168,
+};
+
 function toLocaleCode(locale?: string): string {
   if (!locale) return "ko-KR";
   if (locale.toLowerCase().startsWith("en")) return "en-US";
@@ -85,7 +91,34 @@ export function getRangeBucketUnitLabel(preset: ChartRangePreset, locale?: strin
   return "1일";
 }
 
-export function buildBucketedSeries(
+export function getPresetWindowSize(
+  preset: ChartRangePreset,
+  seriesLength: number
+): number {
+  if (seriesLength <= 0) return 0;
+  if (preset === "ALL") return seriesLength;
+  return Math.max(1, Math.min(seriesLength, PRESET_WINDOW_POINTS[preset]));
+}
+
+export function getDefaultWindowStart(
+  seriesLength: number,
+  windowSize: number
+): number {
+  if (seriesLength <= 0 || windowSize <= 0) return 0;
+  return Math.max(0, seriesLength - windowSize);
+}
+
+export function clampWindowStart(
+  windowStart: number,
+  seriesLength: number,
+  windowSize: number
+): number {
+  if (seriesLength <= 0 || windowSize <= 0) return 0;
+  const maxStart = Math.max(0, seriesLength - windowSize);
+  return Math.min(Math.max(0, windowStart), maxStart);
+}
+
+export function buildFullBucketedSeries(
   snapshots: SnapshotForChart[],
   preset: ChartRangePreset,
   locale?: string
@@ -105,28 +138,23 @@ export function buildBucketedSeries(
 
   if (points.length === 0) return [];
 
-  const end = points[points.length - 1].timestamp;
-  const start = config.rangeMs == null
-    ? points[0].timestamp
-    : Math.max(points[0].timestamp, end - config.rangeMs);
-
-  const inRange = points.filter((snapshot) => snapshot.timestamp >= start && snapshot.timestamp <= end);
-  const seed = points.filter((snapshot) => snapshot.timestamp < start).at(-1);
-
-  if (!seed && inRange.length === 0) return [];
+  const rawStart = points[0].timestamp;
+  const rawEnd = points[points.length - 1].timestamp;
+  const start = Math.floor(rawStart / config.bucketMs) * config.bucketMs;
+  const end = Math.ceil(rawEnd / config.bucketMs) * config.bucketMs;
 
   const bucketed: BucketedViewPoint[] = [];
   let pointer = 0;
-  let knownValue: number | null = seed ? seed.viewCount : null;
-  let knownTimestamp: number | null = seed ? seed.timestamp : null;
+  let knownValue: number | null = null;
+  let knownTimestamp: number | null = null;
   let previousValue: number | null = null;
 
   for (let bucketStart = start; bucketStart <= end; bucketStart += config.bucketMs) {
     const bucketEnd = bucketStart + config.bucketMs;
 
-    while (pointer < inRange.length && inRange[pointer].timestamp <= bucketEnd) {
-      knownValue = inRange[pointer].viewCount;
-      knownTimestamp = inRange[pointer].timestamp;
+    while (pointer < points.length && points[pointer].timestamp <= bucketEnd) {
+      knownValue = points[pointer].viewCount;
+      knownTimestamp = points[pointer].timestamp;
       pointer++;
     }
 
@@ -146,4 +174,12 @@ export function buildBucketedSeries(
   }
 
   return bucketed;
+}
+
+export function buildBucketedSeries(
+  snapshots: SnapshotForChart[],
+  preset: ChartRangePreset,
+  locale?: string
+): BucketedViewPoint[] {
+  return buildFullBucketedSeries(snapshots, preset, locale);
 }
