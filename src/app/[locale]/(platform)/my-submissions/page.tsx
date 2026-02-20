@@ -33,6 +33,14 @@ const SUB_STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "d
   PAID: "outline",
 };
 
+function safeTranslate(t: (key: string) => string, key: string, fallback: string): string {
+  try {
+    return t(key);
+  } catch {
+    return fallback;
+  }
+}
+
 async function getMySubmissions(userId: string) {
   const submissions = await prisma.campaignSubmission.findMany({
     where: { clipperId: userId },
@@ -155,7 +163,7 @@ export default async function MySubmissionsPage() {
                           {sub.campaign.creator.nickname ?? sub.campaign.creator.name}
                         </a>
                         <Badge variant="outline" className="text-xs">
-                          {tc(`type.${sub.campaign.type}`)}
+                          {safeTranslate(tc as (key: string) => string, `type.${sub.campaign.type}`, sub.campaign.type)}
                         </Badge>
                         {sub.clipTitle && (
                           <span className="text-xs">클립: {sub.clipTitle}</span>
@@ -182,7 +190,7 @@ export default async function MySubmissionsPage() {
                         </span>
                       )}
                       <Badge variant={SUB_STATUS_COLORS[sub.status] ?? "outline"}>
-                        {tc(`submission.status.${sub.status}`)}
+                        {safeTranslate(tc as (key: string) => string, `submission.status.${sub.status}`, sub.status)}
                       </Badge>
                     </div>
                   </div>
