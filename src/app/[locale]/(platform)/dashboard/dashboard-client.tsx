@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { cn, formatKRW } from "@/lib/utils";
 import {
   Megaphone,
   CheckCircle,
@@ -25,12 +25,11 @@ import {
   Clock3,
   ArrowUpRight,
 } from "lucide-react";
-import { formatKRW } from "@/lib/utils";
 
-const TYPE_COLORS: Record<string, "default" | "secondary" | "outline"> = {
-  PROJECT: "default",
-  REWARD: "secondary",
-  HYBRID: "outline",
+const TYPE_BADGE_CLASSES: Record<string, string> = {
+  PROJECT: "border-blue-500/20 bg-blue-500/10 text-blue-400",
+  REWARD: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+  HYBRID: "border-purple-500/20 bg-purple-500/10 text-purple-400",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -39,12 +38,12 @@ const TYPE_LABELS: Record<string, string> = {
   HYBRID: "하이브리드형",
 };
 
-const STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  DRAFT: "outline",
-  ACTIVE: "default",
-  PAUSED: "secondary",
-  COMPLETED: "outline",
-  CANCELLED: "destructive",
+const STATUS_BADGE_CLASSES: Record<string, string> = {
+  DRAFT: "border-border bg-muted text-muted-foreground",
+  ACTIVE: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+  PAUSED: "border-border bg-muted text-muted-foreground",
+  COMPLETED: "border-blue-500/20 bg-blue-500/10 text-blue-400",
+  CANCELLED: "border-rose-500/20 bg-rose-500/10 text-rose-400",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -55,17 +54,17 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "취소됨",
 };
 
-const SUBMISSION_STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  APPLIED: "outline",
-  APPLICATION_REJECTED: "destructive",
-  JOINED: "secondary",
-  WITHDRAWN: "outline",
-  SUBMITTED: "default",
-  IN_REVIEW: "secondary",
-  APPROVED: "default",
-  REVISION_REQ: "destructive",
-  REJECTED: "destructive",
-  PAID: "outline",
+const SUBMISSION_STATUS_BADGE_CLASSES: Record<string, string> = {
+  APPLIED: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+  APPLICATION_REJECTED: "border-rose-500/20 bg-rose-500/10 text-rose-400",
+  JOINED: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+  WITHDRAWN: "border-border bg-muted text-muted-foreground",
+  SUBMITTED: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+  IN_REVIEW: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+  APPROVED: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+  REVISION_REQ: "border-rose-500/20 bg-rose-500/10 text-rose-400",
+  REJECTED: "border-rose-500/20 bg-rose-500/10 text-rose-400",
+  PAID: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
 };
 
 const ACTION_NEEDED_STATUSES = new Set(["JOINED", "REVISION_REQ"]);
@@ -113,14 +112,16 @@ function StatCard({
   value: string;
 }) {
   return (
-    <Card>
-      <CardContent className="flex items-center gap-4 p-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold">{value}</p>
+    <Card className="border-border/50 hover:border-foreground/20 transition-colors">
+      <CardContent className="relative p-5">
+        <Icon className="absolute right-5 top-5 h-8 w-8 text-muted-foreground/30" />
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            {label}
+          </p>
+          <p className="text-3xl font-bold tracking-tight text-foreground">
+            {value}
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -194,71 +195,98 @@ function CreatorDashboard({
 }: Pick<Props, "userName" | "data">) {
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">크리에이터 대시보드</h1>
-          <p className="text-muted-foreground">{userName}님, 환영합니다!</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            크리에이터 대시보드
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {userName}님, 환영합니다!
+          </p>
         </div>
         <Link href="/campaigns/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
+          <Button size="sm" className="gap-2">
+            <Plus className="h-3.5 w-3.5" />
             캠페인 만들기
           </Button>
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Bento Stat Cards */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Megaphone} label="진행 중 캠페인" value={String(data.activeCampaigns)} />
         <StatCard icon={CheckCircle} label="완료된 캠페인" value={String(data.completedCampaigns)} />
         <StatCard icon={Wallet} label="지갑 잔액" value={formatKRW(data.walletBalance)} />
         <StatCard icon={ClipboardList} label="에스크로 보유" value={formatKRW(data.escrowHeld)} />
       </div>
 
-      <Card>
-        <CardHeader>
+      {/* Recent Campaigns */}
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle>내 캠페인</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">
+              내 캠페인
+            </CardTitle>
             <Link href="/campaigns">
-              <Button variant="ghost" size="sm">전체 보기</Button>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
+                전체 보기
+              </Button>
             </Link>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {data.recentCreatorCampaigns.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Megaphone className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">아직 캠페인이 없습니다</p>
+              <Megaphone className="mb-4 h-10 w-10 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">
+                아직 캠페인이 없습니다
+              </p>
               <Link href="/campaigns/new" className="mt-4">
-                <Button variant="outline" className="gap-2">
-                  <Plus className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="gap-2 border-border/50">
+                  <Plus className="h-3.5 w-3.5" />
                   캠페인 만들기
                 </Button>
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y divide-border/50">
               {data.recentCreatorCampaigns.map((campaign) => (
                 <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
-                  <div className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent">
-                    <div className="space-y-1">
+                  <div className="flex items-center justify-between py-3.5 px-1 transition-colors hover:bg-accent/50 rounded-md -mx-1">
+                    <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">{campaign.title}</p>
-                        <Badge variant={TYPE_COLORS[campaign.type]} className="text-xs">
+                        <p className="text-sm font-medium text-foreground">
+                          {campaign.title}
+                        </p>
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                            TYPE_BADGE_CLASSES[campaign.type] ?? "border-border bg-muted text-muted-foreground"
+                          )}
+                        >
                           {TYPE_LABELS[campaign.type]}
-                        </Badge>
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {new Date(campaign.deadline).toLocaleDateString("ko-KR")}
                         </span>
                         <span>{campaign.submissionCount}명 참여</span>
-                        {campaign.totalBudget && <span>{formatKRW(campaign.totalBudget)}</span>}
+                        {campaign.totalBudget && (
+                          <span>{formatKRW(campaign.totalBudget)}</span>
+                        )}
                       </div>
                     </div>
-                    <Badge variant={STATUS_COLORS[campaign.status]}>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
+                        STATUS_BADGE_CLASSES[campaign.status] ?? "border-border bg-muted text-muted-foreground"
+                      )}
+                    >
                       {STATUS_LABELS[campaign.status]}
-                    </Badge>
+                    </span>
                   </div>
                 </Link>
               ))}
@@ -356,7 +384,7 @@ function ClipperDashboard({
     return (
       <div
         key={submission.id}
-        className="rounded-lg border p-4 transition-colors hover:bg-accent/50 cursor-pointer"
+        className="group py-3.5 px-1 transition-colors hover:bg-accent/50 rounded-md -mx-1 cursor-pointer"
         onClick={() => router.push(detailHref)}
         role="button"
         tabIndex={0}
@@ -367,27 +395,39 @@ function ClipperDashboard({
           }
         }}
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold">{submission.campaign.title}</p>
-              <Badge variant={TYPE_COLORS[submission.campaign.type] ?? "outline"} className="text-xs">
+              <p className="text-sm font-medium text-foreground">
+                {submission.campaign.title}
+              </p>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                  TYPE_BADGE_CLASSES[submission.campaign.type] ?? "border-border bg-muted text-muted-foreground"
+                )}
+              >
                 {getCampaignTypeLabel(submission.campaign.type)}
-              </Badge>
-              <Badge variant={SUBMISSION_STATUS_COLORS[submission.status] ?? "outline"}>
+              </span>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                  SUBMISSION_STATUS_BADGE_CLASSES[submission.status] ?? "border-border bg-muted text-muted-foreground"
+                )}
+              >
                 {getSubmissionStatusLabel(submission.status)}
-              </Badge>
+              </span>
             </div>
 
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               {submission.clipTitle
                 ? `${t("submissionHub.clipTitleLabel")}: ${submission.clipTitle}`
                 : t("submissionHub.noClipTitle")}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <Eye className="h-3.5 w-3.5" />
+                <Eye className="h-3 w-3" />
                 {safeTranslate(
                   t as (key: string, values?: Record<string, string | number | Date>) => string,
                   "submissionHub.currentViews",
@@ -397,8 +437,8 @@ function ClipperDashboard({
               </span>
 
               {section === "active" && deltaSinceSubmission !== null && (
-                <span className="inline-flex items-center gap-1">
-                  <TrendingUp className="h-3.5 w-3.5" />
+                <span className="inline-flex items-center gap-1 text-emerald-400">
+                  <TrendingUp className="h-3 w-3" />
                   {safeTranslate(
                     t as (key: string, values?: Record<string, string | number | Date>) => string,
                     "submissionHub.deltaSinceSubmission",
@@ -414,29 +454,33 @@ function ClipperDashboard({
               )}
 
               <span className="inline-flex items-center gap-1">
-                <Clock3 className="h-3.5 w-3.5" />
+                <Clock3 className="h-3 w-3" />
                 {syncLabel}
               </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
             {Number(submission.totalPaid) > 0 && (
-              <span className="text-sm font-semibold text-emerald-600">
+              <span className="text-xs font-semibold text-emerald-400">
                 {formatKRW(Number(submission.totalPaid))}
               </span>
             )}
 
             {urgencyCta && (
               <Link href={detailHref} onClick={(event) => event.stopPropagation()}>
-                <Button size="sm" className="gap-1">
+                <Button size="sm" className="h-7 gap-1 text-xs">
                   {urgencyCta}
                 </Button>
               </Link>
             )}
 
             <Link href={detailHref} onClick={(event) => event.stopPropagation()}>
-              <Button variant={urgencyCta ? "outline" : "default"} size="sm">
+              <Button
+                variant={urgencyCta ? "outline" : "default"}
+                size="sm"
+                className="h-7 text-xs"
+              >
                 {t("submissionHub.cta.viewSubmissionDetail")}
               </Button>
             </Link>
@@ -445,9 +489,9 @@ function ClipperDashboard({
               href={campaignHref}
               onClick={(event) => event.stopPropagation()}
             >
-              <Button variant="ghost" size="sm" className="gap-1">
+              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground">
                 {t("submissionHub.cta.viewCampaign")}
-                <ArrowUpRight className="h-3.5 w-3.5" />
+                <ArrowUpRight className="h-3 w-3" />
               </Button>
             </Link>
           </div>
@@ -465,15 +509,15 @@ function ClipperDashboard({
   }) {
     return (
       <div className="space-y-3">
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold">{options.title}</h3>
-          <p className="text-sm text-muted-foreground">{options.description}</p>
+        <div className="space-y-0.5">
+          <h3 className="text-sm font-semibold text-foreground">{options.title}</h3>
+          <p className="text-xs text-muted-foreground">{options.description}</p>
         </div>
 
         {options.submissions.length === 0 ? (
           options.emptyState
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-border/50">
             {options.submissions.map((submission) => renderSubmissionRow(submission, options.key))}
           </div>
         )}
@@ -483,58 +527,98 @@ function ClipperDashboard({
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t("clipperDashboard")}</h1>
-          <p className="text-muted-foreground">{safeTranslate(t as (key: string, values?: Record<string, string | number | Date>) => string, "welcome", `${userName}님, 환영합니다!`, { name: userName })}</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            {t("clipperDashboard")}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {safeTranslate(t as (key: string, values?: Record<string, string | number | Date>) => string, "welcome", `${userName}님, 환영합니다!`, { name: userName })}
+          </p>
         </div>
         <Link href="/campaigns">
-          <Button className="gap-2">
-            <Search className="h-4 w-4" />
+          <Button size="sm" className="gap-2">
+            <Search className="h-3.5 w-3.5" />
             {t("browseMarketplace")}
           </Button>
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Bento Stat Cards */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={ClipboardList} label={t("submissionHub.stats.participatingCampaigns")} value={String(data.mySubmissions)} />
         <StatCard icon={CheckCircle} label={t("submissionHub.stats.approvedClips")} value={String(data.approvedSubmissions)} />
         <StatCard icon={TrendingUp} label={t("submissionHub.stats.totalEarnings")} value={formatKRW(data.totalEarned)} />
         <StatCard icon={Wallet} label={t("submissionHub.stats.walletBalance")} value={formatKRW(data.walletBalance)} />
       </div>
 
-      <Card>
-        <CardHeader className="space-y-4">
-          <div className="space-y-1">
-            <CardTitle>{t("submissionHub.title")}</CardTitle>
-            <p className="text-sm text-muted-foreground">{t("submissionHub.description")}</p>
+      {/* Submission Hub */}
+      <Card className="border-border/50">
+        <CardHeader className="space-y-4 pb-3">
+          <div className="space-y-0.5">
+            <CardTitle className="text-base font-semibold text-foreground">
+              {t("submissionHub.title")}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              {t("submissionHub.description")}
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Pill-shaped filter toggles */}
+          <div className="flex flex-wrap items-center gap-1.5">
             <Link href={getSectionBaseHref()}>
-              <Button variant={!sectionFilter ? "secondary" : "outline"} size="sm">
+              <button
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  !sectionFilter
+                    ? "border-foreground/20 bg-foreground text-background"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                )}
+              >
                 {t("submissionHub.filters.all")}
-              </Button>
+              </button>
             </Link>
             <Link href={`${getSectionBaseHref()}&section=action`}>
-              <Button variant={sectionFilter === "action" ? "secondary" : "outline"} size="sm">
+              <button
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  sectionFilter === "action"
+                    ? "border-foreground/20 bg-foreground text-background"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                )}
+              >
                 {t("submissionHub.section.action.title")}
-              </Button>
+              </button>
             </Link>
             <Link href={`${getSectionBaseHref()}&section=active`}>
-              <Button variant={sectionFilter === "active" ? "secondary" : "outline"} size="sm">
+              <button
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  sectionFilter === "active"
+                    ? "border-foreground/20 bg-foreground text-background"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                )}
+              >
                 {t("submissionHub.section.active.title")}
-              </Button>
+              </button>
             </Link>
             <Link href={`${getSectionBaseHref()}&section=archive`}>
-              <Button variant={sectionFilter === "archive" ? "secondary" : "outline"} size="sm">
+              <button
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  sectionFilter === "archive"
+                    ? "border-foreground/20 bg-foreground text-background"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                )}
+              >
                 {t("submissionHub.section.archive.title")}
-              </Button>
+              </button>
             </Link>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-8 pt-0">
           {shouldShowActionSection &&
             renderSection({
               key: "action",
@@ -542,7 +626,7 @@ function ClipperDashboard({
               description: t("submissionHub.section.action.description"),
               submissions: actionNeededSubmissions,
               emptyState: (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-400">
                   {t("submissionHub.empty.action")}
                 </div>
               ),
@@ -555,11 +639,13 @@ function ClipperDashboard({
               description: t("submissionHub.section.active.description"),
               submissions: activeTrackingSubmissions,
               emptyState: (
-                <div className="rounded-lg border border-dashed p-6 text-center">
-                  <p className="text-sm text-muted-foreground">{t("submissionHub.empty.active")}</p>
-                  <Link href="/campaigns" className="mt-4 inline-block">
-                    <Button variant="outline" className="gap-2">
-                      <Search className="h-4 w-4" />
+                <div className="rounded-md border border-dashed border-border/50 p-6 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    {t("submissionHub.empty.active")}
+                  </p>
+                  <Link href="/campaigns" className="mt-3 inline-block">
+                    <Button variant="outline" size="sm" className="gap-2 border-border/50 text-xs">
+                      <Search className="h-3 w-3" />
                       {t("submissionHub.cta.findCampaigns")}
                     </Button>
                   </Link>
@@ -574,7 +660,7 @@ function ClipperDashboard({
               description: t("submissionHub.section.archive.description"),
               submissions: archiveSubmissions,
               emptyState: (
-                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                <div className="rounded-md border border-dashed border-border/50 p-3 text-xs text-muted-foreground">
                   {t("submissionHub.empty.archive")}
                 </div>
               ),
