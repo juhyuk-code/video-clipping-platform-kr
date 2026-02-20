@@ -117,7 +117,52 @@
     "pendingReviews": "리뷰 대기",
     "recentProjects": "최근 프로젝트",
     "newProject": "새 프로젝트 만들기",
-    "browseMarketplace": "마켓플레이스 둘러보기"
+    "browseMarketplace": "캠페인 찾기",
+    "submissionHub": {
+      "title": "제출 관리 허브",
+      "description": "클립 제출 상태를 한 곳에서 관리하고 제출 상세 페이지로 바로 이동하세요.",
+      "clipTitleLabel": "클립",
+      "noClipTitle": "아직 제출된 클립 제목이 없습니다",
+      "currentViews": "현재 조회수 {count}",
+      "deltaSinceSubmission": "제출 후 증가 {count}",
+      "syncedAt": "동기화 {time}",
+      "updatedAt": "업데이트 {time}",
+      "filters": {
+        "all": "전체"
+      },
+      "stats": {
+        "participatingCampaigns": "참여 중 캠페인",
+        "approvedClips": "승인된 클립",
+        "totalEarnings": "총 수익",
+        "walletBalance": "지갑 잔액"
+      },
+      "section": {
+        "action": {
+          "title": "조치 필요",
+          "description": "지금 바로 처리해야 하는 제출입니다."
+        },
+        "active": {
+          "title": "추적 중",
+          "description": "조회수와 승인 상태를 추적 중인 제출입니다."
+        },
+        "archive": {
+          "title": "보관됨",
+          "description": "지급 완료 또는 종료된 제출 기록입니다."
+        }
+      },
+      "empty": {
+        "action": "지금 처리할 작업이 없습니다. 현재 상태가 좋습니다.",
+        "active": "추적 중인 제출이 없습니다. 캠페인을 찾아 참여해 보세요.",
+        "archive": "보관된 제출이 아직 없습니다."
+      },
+      "cta": {
+        "viewSubmissionDetail": "제출 상세 보기",
+        "viewCampaign": "캠페인 보기",
+        "submitClip": "클립 제출하기",
+        "resubmitClip": "수정 후 재제출",
+        "findCampaigns": "캠페인 찾기"
+      }
+    }
   },
   "projects": {
     "create": "프로젝트 만들기",

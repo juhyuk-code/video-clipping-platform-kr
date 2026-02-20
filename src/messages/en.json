@@ -117,7 +117,52 @@
     "pendingReviews": "Pending Reviews",
     "recentProjects": "Recent Projects",
     "newProject": "New Project",
-    "browseMarketplace": "Browse Marketplace"
+    "browseMarketplace": "Find Campaigns",
+    "submissionHub": {
+      "title": "Submission Hub",
+      "description": "Manage clip submissions in one place and jump straight to submission detail stats.",
+      "clipTitleLabel": "Clip",
+      "noClipTitle": "No clip title submitted yet",
+      "currentViews": "Current views {count}",
+      "deltaSinceSubmission": "Delta since submission {count}",
+      "syncedAt": "Synced {time}",
+      "updatedAt": "Updated {time}",
+      "filters": {
+        "all": "All"
+      },
+      "stats": {
+        "participatingCampaigns": "Participating Campaigns",
+        "approvedClips": "Approved Clips",
+        "totalEarnings": "Total Earnings",
+        "walletBalance": "Wallet Balance"
+      },
+      "section": {
+        "action": {
+          "title": "Action Needed",
+          "description": "Submissions that need immediate action."
+        },
+        "active": {
+          "title": "Active Tracking",
+          "description": "Submissions currently being tracked for review and performance."
+        },
+        "archive": {
+          "title": "Archive",
+          "description": "Completed or closed submissions."
+        }
+      },
+      "empty": {
+        "action": "No action needed right now. You're all clear.",
+        "active": "No submissions are currently being tracked. Join a campaign to get started.",
+        "archive": "No archived submissions yet."
+      },
+      "cta": {
+        "viewSubmissionDetail": "View Submission Detail",
+        "viewCampaign": "View Campaign",
+        "submitClip": "Submit Clip",
+        "resubmitClip": "Revise and Resubmit",
+        "findCampaigns": "Find Campaigns"
+      }
+    }
   },
   "projects": {
     "create": "Create Project",

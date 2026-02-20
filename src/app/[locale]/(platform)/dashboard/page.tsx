@@ -2,6 +2,11 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { DashboardClient } from "./dashboard-client";
 
+type DashboardSearchParams = {
+  tab?: string;
+  section?: string;
+};
+
 async function getDashboardData(userId: string) {
   const [
     activeCampaigns,
@@ -10,7 +15,7 @@ async function getDashboardData(userId: string) {
     approvedSubmissions,
     wallet,
     recentCreatorCampaigns,
-    recentClipperSubmissions,
+    clipperSubmissions,
   ] = await Promise.all([
     prisma.campaign.count({
       where: { creatorId: userId, status: { in: ["ACTIVE", "PAUSED"] } },
@@ -32,7 +37,6 @@ async function getDashboardData(userId: string) {
     prisma.campaignSubmission.findMany({
       where: { clipperId: userId },
       orderBy: { updatedAt: "desc" },
-      take: 5,
       include: {
         campaign: {
           select: { id: true, title: true, type: true, status: true, deadline: true },
@@ -58,23 +62,33 @@ async function getDashboardData(userId: string) {
       totalBudget: c.totalBudget ? Number(c.totalBudget) : null,
       submissionCount: c._count.submissions,
     })),
-    recentClipperSubmissions: recentClipperSubmissions.map((s) => ({
+    clipperSubmissions: clipperSubmissions.map((s) => ({
       id: s.id,
       status: s.status,
       clipTitle: s.clipTitle,
       totalPaid: Number(s.totalPaid),
       latestViewCount: s.latestViewCount,
+      baselineViewCount: s.baselineViewCount,
+      submittedAt: s.submittedAt ? s.submittedAt.toISOString() : null,
+      updatedAt: s.updatedAt.toISOString(),
+      lastMetricsSyncedAt: s.lastMetricsSyncedAt ? s.lastMetricsSyncedAt.toISOString() : null,
       campaign: {
         id: s.campaign.id,
         title: s.campaign.title,
         type: s.campaign.type,
+        status: s.campaign.status,
         deadline: s.campaign.deadline.toISOString(),
       },
     })),
   };
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<DashboardSearchParams>;
+}) {
+  const { tab, section } = await searchParams;
   const session = await auth();
   const userId = session?.user?.id;
   const userName = session?.user?.name ?? "User";
@@ -88,7 +102,7 @@ export default async function DashboardPage() {
     totalEarned: 0,
     escrowHeld: 0,
     recentCreatorCampaigns: [],
-    recentClipperSubmissions: [],
+    clipperSubmissions: [],
   };
 
   if (userId) {
@@ -99,5 +113,12 @@ export default async function DashboardPage() {
     }
   }
 
-  return <DashboardClient userName={userName} data={data} />;
+  return (
+    <DashboardClient
+      userName={userName}
+      data={data}
+      initialTab={tab ?? null}
+      initialSection={section ?? null}
+    />
+  );
 }

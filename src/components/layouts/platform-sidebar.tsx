@@ -15,7 +15,6 @@ import {
   Scissors,
   Megaphone,
   Wallet,
-  ClipboardList,
   Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,6 @@ const creatorNav = [
 const clipperNav = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
   { key: "browseCampaigns", href: "/campaigns", icon: Search },
-  { key: "mySubmissions", href: "/my-submissions", icon: ClipboardList },
   { key: "wallet", href: "/wallet", icon: Wallet },
   { key: "messages", href: "/messages", icon: MessageSquare },
   { key: "settings", href: "/settings", icon: Settings },
@@ -42,7 +40,6 @@ const NAV_LABELS: Record<string, { ko: string; en: string }> = {
   dashboard: { ko: "대시보드", en: "Dashboard" },
   myCampaigns: { ko: "내 캠페인", en: "My Campaigns" },
   browseCampaigns: { ko: "캠페인 찾기", en: "Find Campaigns" },
-  mySubmissions: { ko: "내 제출 현황", en: "My Submissions" },
   wallet: { ko: "지갑", en: "Wallet" },
   messages: { ko: "메시지", en: "Messages" },
   analytics: { ko: "분석", en: "Analytics" },
