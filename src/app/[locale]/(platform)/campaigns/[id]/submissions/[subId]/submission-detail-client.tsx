@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,8 +47,11 @@ import {
 } from "@/lib/earnings";
 import type { SubmissionAnalyticsPayload } from "@/lib/social/submission-analytics";
 import {
+  buildFullBucketedSeries,
+  clampWindowStart,
   type ChartRangePreset,
-  buildBucketedSeries,
+  getDefaultWindowStart,
+  getPresetWindowSize,
   getRangeBucketUnitLabel,
 } from "@/lib/analytics/chart-intervals";
 
@@ -260,7 +263,9 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   const [showAdmissionRejectForm, setShowAdmissionRejectForm] = useState(false);
   const [admissionRejectReason, setAdmissionRejectReason] = useState("");
   const [selectedRange, setSelectedRange] = useState<ChartRangePreset>("24H");
+  const [windowStartIndex, setWindowStartIndex] = useState(0);
   const [showAdvancedBreakdown, setShowAdvancedBreakdown] = useState(false);
+  const previousPresetRef = useRef<ChartRangePreset | null>(null);
   const canAdmit = sub.isCreator && sub.status === "APPLIED";
   const canReview = sub.isCreator && ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
   const clipperName = sub.clipper.nickname ?? sub.clipper.name ?? "사용자";
@@ -275,9 +280,48 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
 
   // Derived data
   const bucketedSeries = useMemo(
-    () => buildBucketedSeries(sub.snapshots, selectedRange, "ko"),
+    () => buildFullBucketedSeries(sub.snapshots, selectedRange, "ko"),
     [sub.snapshots, selectedRange]
   );
+  const windowSize = useMemo(
+    () => getPresetWindowSize(selectedRange, bucketedSeries.length),
+    [selectedRange, bucketedSeries.length]
+  );
+
+  useEffect(() => {
+    if (bucketedSeries.length <= 0 || windowSize <= 0) {
+      setWindowStartIndex(0);
+      previousPresetRef.current = selectedRange;
+      return;
+    }
+
+    setWindowStartIndex((current) => {
+      if (selectedRange === "ALL") {
+        previousPresetRef.current = selectedRange;
+        return 0;
+      }
+
+      if (previousPresetRef.current !== selectedRange) {
+        previousPresetRef.current = selectedRange;
+        return getDefaultWindowStart(bucketedSeries.length, windowSize);
+      }
+
+      return clampWindowStart(current, bucketedSeries.length, windowSize);
+    });
+  }, [selectedRange, bucketedSeries.length, windowSize]);
+
+  const visibleStartIndex = selectedRange === "ALL"
+    ? 0
+    : clampWindowStart(windowStartIndex, bucketedSeries.length, windowSize);
+  const visibleEndIndex = bucketedSeries.length > 0
+    ? Math.min(bucketedSeries.length - 1, visibleStartIndex + Math.max(0, windowSize - 1))
+    : -1;
+
+  const visibleSeries = useMemo(() => {
+    if (bucketedSeries.length === 0 || visibleEndIndex < visibleStartIndex) return [];
+    return bucketedSeries.slice(visibleStartIndex, visibleEndIndex + 1);
+  }, [bucketedSeries, visibleStartIndex, visibleEndIndex]);
+
   const chartData = useMemo(
     () => bucketedSeries.map((point) => ({
       date: point.bucketStart,
@@ -287,7 +331,8 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
     })),
     [bucketedSeries]
   );
-  const rangeGrowth = calculateRangeGrowth(chartData);
+
+  const rangeGrowth = calculateRangeGrowth(visibleSeries);
   const selectedRangeDelta = rangeGrowth.delta;
   const averagePerBucketDelta = rangeGrowth.averagePerBucket;
   const bucketUnitLabel = getRangeBucketUnitLabel(selectedRange, "ko");
@@ -894,7 +939,15 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                       버킷 간격: {bucketUnitLabel}
                     </p>
                   </div>
-                  <ViewChart data={chartData} height={172} />
+                  <ViewChart
+                    data={chartData}
+                    visibleStartIndex={visibleStartIndex}
+                    visibleEndIndex={visibleEndIndex}
+                    onVisibleRangeChange={setWindowStartIndex}
+                    bucketUnitLabel={bucketUnitLabel}
+                    hideSlider={selectedRange === "ALL"}
+                    height={184}
+                  />
                   {selectedRange === "ALL" && sub.historyTruncated && (
                     <p className="mt-3 text-xs text-muted-foreground">
                       전체 구간은 최근 {sub.snapshotLoadedCount.toLocaleString()}개 스냅샷 기준입니다.
