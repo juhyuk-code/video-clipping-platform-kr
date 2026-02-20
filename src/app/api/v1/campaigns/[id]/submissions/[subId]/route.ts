@@ -3,6 +3,12 @@ import { prisma } from "@/lib/db";
 import { apiResponse, apiError, requireAuth, parseBody } from "@/lib/api/helpers";
 import { submitToCampaignSchema, reviewSubmissionSchema } from "@/lib/validations";
 import { calculateFees } from "@/lib/payments/toss";
+import {
+  buildSubmissionAnalyticsPayload,
+  computeNextMetricsSyncAt,
+  deriveAnalyticsProvider,
+  prepareVerifiedSubmissionContext,
+} from "@/lib/social/submission-analytics";
 
 // GET /api/v1/campaigns/[id]/submissions/[subId]
 export async function GET(
@@ -50,7 +56,10 @@ export async function GET(
     return apiError("Forbidden", 403);
   }
 
-  return apiResponse(submission);
+  return apiResponse({
+    ...submission,
+    analytics: buildSubmissionAnalyticsPayload(submission as any),
+  });
 }
 
 // PUT /api/v1/campaigns/[id]/submissions/[subId] — Submit clip OR review submission
@@ -96,20 +105,122 @@ export async function PUT(
     const parsed = parseBody(submitToCampaignSchema, body);
     if ("error" in parsed) return apiError(parsed.error);
 
+    const analyticsProvider = deriveAnalyticsProvider(parsed.data.targetPlatform);
+    let verifiedContext:
+      | Awaited<ReturnType<typeof prepareVerifiedSubmissionContext>>
+      | null = null;
+
+    if (analyticsProvider) {
+      if (!parsed.data.clipUrl) {
+        return apiError("YouTube/Instagram 제출은 게시된 클립 URL이 필요합니다.");
+      }
+
+      try {
+        verifiedContext = await prepareVerifiedSubmissionContext({
+          clipperId: user.id,
+          clipUrl: parsed.data.clipUrl,
+          targetPlatform: parsed.data.targetPlatform,
+        });
+      } catch (err) {
+        return apiError(err instanceof Error ? err.message : "클립 URL 검증에 실패했습니다.");
+      }
+    }
+
     const isFirstSubmission = !submission.submittedAt;
+    const submittedAt = new Date();
     const updated = await prisma.$transaction(async (tx) => {
       const sub = await tx.campaignSubmission.update({
         where: { id: subId },
         data: {
           clipTitle: parsed.data.clipTitle,
-          clipUrl: parsed.data.clipUrl,
+          clipUrl: verifiedContext?.canonicalUrl ?? parsed.data.clipUrl,
           clipFileUrl: parsed.data.clipFileUrl,
           thumbnailUrl: parsed.data.thumbnailUrl,
           targetPlatform: parsed.data.targetPlatform,
           status: "SUBMITTED",
-          submittedAt: new Date(),
+          submittedAt,
+          analyticsProvider: verifiedContext?.providerEnum ?? null,
+          platformVideoId: verifiedContext?.platformVideoId ?? null,
+          linkedSocialConnectionId: verifiedContext?.linkedSocialConnectionId ?? null,
+          postedAt: verifiedContext?.postedAt ?? null,
+          ownershipVerifiedAt: verifiedContext?.ownershipVerifiedAt ?? null,
+          baselineCapturedAt: verifiedContext ? submittedAt : null,
+          baselineViewCount: verifiedContext?.current.viewCount ?? null,
+          baselineLikeCount: verifiedContext?.current.likeCount ?? null,
+          baselineCommentCount: verifiedContext?.current.commentCount ?? null,
+          latestViewCount: verifiedContext?.current.viewCount ?? 0,
+          lastSnapshotAt: verifiedContext ? submittedAt : null,
+          lastMetricsSyncedAt: verifiedContext ? submittedAt : null,
+          nextMetricsSyncAt: verifiedContext ? computeNextMetricsSyncAt(submittedAt, submittedAt) : null,
+          metricsSyncStatus: verifiedContext ? "ACTIVE" : "IDLE",
+          metricsLastError: null,
+          metricsAuthErrorCount: 0,
         },
-      });
+      } as any);
+
+      if (verifiedContext) {
+        await tx.viewSnapshot.create({
+          data: {
+            submissionId: subId,
+            viewCount: verifiedContext.current.viewCount,
+            likeCount: verifiedContext.current.likeCount,
+            commentCount: verifiedContext.current.commentCount,
+            shareCount: verifiedContext.current.shareCount,
+            reachCount: verifiedContext.current.reachCount,
+            impressionCount: verifiedContext.current.impressionCount,
+            saveCount: verifiedContext.current.saveCount,
+            estimatedMinutesWatched: verifiedContext.current.estimatedMinutesWatched,
+            averageViewDurationSec: verifiedContext.current.averageViewDurationSec,
+            averageViewPercentage: verifiedContext.current.averageViewPercentage,
+            trafficExternalViews: verifiedContext.current.trafficExternalViews,
+            trafficSearchViews: verifiedContext.current.trafficSearchViews,
+            trafficSuggestedViews: verifiedContext.current.trafficSuggestedViews,
+            trafficDirectViews: verifiedContext.current.trafficDirectViews,
+            delta: verifiedContext.current.viewCount,
+            source: verifiedContext.providerEnum === "YOUTUBE" ? "YOUTUBE_API" : "INSTAGRAM_API",
+            rawPayload: verifiedContext.current.rawPayload as any,
+            capturedAt: submittedAt,
+          } as any,
+        });
+      }
+
+      if (verifiedContext) {
+        await tx.socialVideo.upsert({
+          where: {
+            socialConnectionId_platformVideoId: {
+              socialConnectionId: verifiedContext.linkedSocialConnectionId,
+              platformVideoId: verifiedContext.platformVideoId,
+            },
+          },
+          create: {
+            socialConnectionId: verifiedContext.linkedSocialConnectionId,
+            platformVideoId: verifiedContext.platformVideoId,
+            submissionId: subId,
+            url: verifiedContext.canonicalUrl,
+            title: parsed.data.clipTitle,
+            thumbnailUrl: parsed.data.thumbnailUrl,
+            viewCount: verifiedContext.current.viewCount,
+            likeCount: verifiedContext.current.likeCount,
+            commentCount: verifiedContext.current.commentCount,
+            shareCount: verifiedContext.current.shareCount ?? 0,
+            publishedAt: verifiedContext.postedAt ?? undefined,
+            lastSyncedAt: submittedAt,
+          },
+          update: {
+            submissionId: subId,
+            url: verifiedContext.canonicalUrl,
+            title: parsed.data.clipTitle,
+            thumbnailUrl: parsed.data.thumbnailUrl,
+            viewCount: verifiedContext.current.viewCount,
+            likeCount: verifiedContext.current.likeCount,
+            commentCount: verifiedContext.current.commentCount,
+            shareCount: verifiedContext.current.shareCount ?? 0,
+            publishedAt: verifiedContext.postedAt ?? undefined,
+            lastSyncedAt: submittedAt,
+          },
+        });
+      }
+
       if (isFirstSubmission) {
         await tx.campaign.update({
           where: { id },
@@ -130,7 +241,35 @@ export async function PUT(
       },
     });
 
-    return apiResponse(updated);
+    const analyticsSummary = buildSubmissionAnalyticsPayload({
+      ...updated,
+      snapshots: verifiedContext
+        ? [
+            {
+              viewCount: verifiedContext.current.viewCount,
+              likeCount: verifiedContext.current.likeCount,
+              commentCount: verifiedContext.current.commentCount,
+              shareCount: verifiedContext.current.shareCount ?? 0,
+              reachCount: verifiedContext.current.reachCount ?? 0,
+              impressionCount: verifiedContext.current.impressionCount ?? 0,
+              saveCount: verifiedContext.current.saveCount ?? 0,
+              estimatedMinutesWatched: verifiedContext.current.estimatedMinutesWatched ?? 0,
+              averageViewDurationSec: verifiedContext.current.averageViewDurationSec ?? null,
+              averageViewPercentage: verifiedContext.current.averageViewPercentage ?? null,
+              trafficExternalViews: verifiedContext.current.trafficExternalViews ?? 0,
+              trafficSearchViews: verifiedContext.current.trafficSearchViews ?? 0,
+              trafficSuggestedViews: verifiedContext.current.trafficSuggestedViews ?? 0,
+              trafficDirectViews: verifiedContext.current.trafficDirectViews ?? 0,
+            },
+          ]
+        : [],
+    });
+
+    return apiResponse({
+      ...updated,
+      analyticsSummary,
+      analyticsSyncStarted: Boolean(verifiedContext),
+    });
   }
 
   // ── Creator reviewing a submission ──
@@ -284,7 +423,13 @@ export async function PUT(
     if (status === "REJECTED") {
       const updated = await prisma.campaignSubmission.update({
         where: { id: subId },
-        data: { status: "REJECTED", revisionNotes, reviewedAt: new Date() },
+        data: {
+          status: "REJECTED",
+          revisionNotes,
+          reviewedAt: new Date(),
+          nextMetricsSyncAt: null,
+          metricsSyncStatus: "IDLE",
+        } as any,
       });
 
       await prisma.notification.create({
