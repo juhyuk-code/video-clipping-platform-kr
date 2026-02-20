@@ -14,18 +14,18 @@ interface StatsGridProps {
 export function StatsGrid({ stats, columns = 3, className = "" }: StatsGridProps) {
   const gridCols =
     columns === 2
-      ? "grid-cols-2"
+      ? "grid-cols-1 sm:grid-cols-2"
       : columns === 4
-        ? "grid-cols-2 sm:grid-cols-4"
-        : "grid-cols-3";
+        ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
 
   return (
     <div className={`grid gap-3 ${gridCols} ${className}`}>
       {stats.map((stat, i) => (
-        <div key={i} className="rounded-lg border p-3 text-center">
-          <p className={`text-lg font-bold ${stat.color ?? ""}`}>{stat.value}</p>
+        <div key={i} className="rounded-lg border bg-card p-3.5">
           <p className="text-xs text-muted-foreground">{stat.label}</p>
-          {stat.sub && <p className="mt-0.5 text-[10px] text-muted-foreground">{stat.sub}</p>}
+          <p className={`mt-1 text-2xl font-semibold tracking-tight ${stat.color ?? ""}`}>{stat.value}</p>
+          {stat.sub && <p className="mt-1 text-xs text-muted-foreground">{stat.sub}</p>}
         </div>
       ))}
     </div>

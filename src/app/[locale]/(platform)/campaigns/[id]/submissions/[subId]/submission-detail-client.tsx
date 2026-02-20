@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,13 +25,14 @@ import {
   BarChart3,
   Coins,
   Star,
-  Briefcase,
   Shield,
   MessageSquare,
   Wrench,
   Globe,
   Sparkles,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Youtube,
   Instagram,
 } from "lucide-react";
@@ -42,10 +43,14 @@ import { StatsGrid } from "@/components/charts/stats-grid";
 import { ClipEmbed, getClipEmbedInfo } from "@/components/ui/clip-embed";
 import {
   calculateEstimatedEarnings,
-  calculateViewVelocity,
-  snapshotsToChartData,
+  calculateRangeGrowth,
 } from "@/lib/earnings";
 import type { SubmissionAnalyticsPayload } from "@/lib/social/submission-analytics";
+import {
+  type ChartRangePreset,
+  buildBucketedSeries,
+  getRangeBucketUnitLabel,
+} from "@/lib/analytics/chart-intervals";
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -86,6 +91,13 @@ const CAMPAIGN_TYPE_COLORS: Record<string, string> = {
   REWARD: "bg-emerald-100 text-emerald-700 border-emerald-200",
   HYBRID: "bg-amber-100 text-amber-700 border-amber-200",
 };
+
+const RANGE_PRESETS: Array<{ key: ChartRangePreset; label: string }> = [
+  { key: "2H", label: "2h" },
+  { key: "24H", label: "24h" },
+  { key: "7D", label: "7d" },
+  { key: "ALL", label: "전체" },
+];
 
 const MIN_REVIEW_REASON_LENGTH = 5;
 
@@ -186,8 +198,13 @@ interface SubmissionData {
   };
   snapshots: {
     viewCount: number;
+    likeCount: number | null;
+    commentCount: number | null;
     capturedAt: string;
   }[];
+  snapshotTotalCount: number;
+  snapshotLoadedCount: number;
+  historyTruncated: boolean;
   analytics: SubmissionAnalyticsPayload;
   isCreator: boolean;
   isClipper: boolean;
@@ -206,6 +223,18 @@ function formatViewsCompact(n: number): string {
   if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}천`;
   return String(n);
+}
+
+function formatDelta(value: number, suffix = "회"): string {
+  if (value > 0) return `+${value.toLocaleString()}${suffix}`;
+  if (value < 0) return `${value.toLocaleString()}${suffix}`;
+  return `0${suffix}`;
+}
+
+function getDeltaColor(value: number): string {
+  if (value > 0) return "text-emerald-600";
+  if (value < 0) return "text-red-600";
+  return "text-foreground";
 }
 
 function getRelativeDuration(dateStr: string): string {
@@ -230,6 +259,8 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   const [revisionNotes, setRevisionNotes] = useState("");
   const [showAdmissionRejectForm, setShowAdmissionRejectForm] = useState(false);
   const [admissionRejectReason, setAdmissionRejectReason] = useState("");
+  const [selectedRange, setSelectedRange] = useState<ChartRangePreset>("24H");
+  const [showAdvancedBreakdown, setShowAdvancedBreakdown] = useState(false);
   const canAdmit = sub.isCreator && sub.status === "APPLIED";
   const canReview = sub.isCreator && ["SUBMITTED", "IN_REVIEW"].includes(sub.status);
   const clipperName = sub.clipper.nickname ?? sub.clipper.name ?? "사용자";
@@ -243,13 +274,28 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   const socialConnections = profileData?.socialConnections ?? [];
 
   // Derived data
-  const chartData = snapshotsToChartData(sub.snapshots);
-  const velocity = calculateViewVelocity(sub.snapshots);
+  const bucketedSeries = useMemo(
+    () => buildBucketedSeries(sub.snapshots, selectedRange, "ko"),
+    [sub.snapshots, selectedRange]
+  );
+  const chartData = useMemo(
+    () => bucketedSeries.map((point) => ({
+      date: point.bucketStart,
+      label: point.label,
+      fullLabel: point.fullLabel,
+      views: point.views,
+    })),
+    [bucketedSeries]
+  );
+  const rangeGrowth = calculateRangeGrowth(chartData);
+  const selectedRangeDelta = rangeGrowth.delta;
+  const averagePerBucketDelta = rangeGrowth.averagePerBucket;
+  const bucketUnitLabel = getRangeBucketUnitLabel(selectedRange, "ko");
   const analytics = sub.analytics;
   const currentViews = analytics.current.views;
   const currentLikes = analytics.current.likes;
   const currentComments = analytics.current.comments;
-  const viewsDelta = analytics.deltaSinceSubmission.views;
+  const submissionDelta = analytics.deltaSinceSubmission.views;
   const earnings = calculateEstimatedEarnings(
     campaignType,
     currentViews,
@@ -257,6 +303,14 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
     sub.campaign.cprRate,
     sub.campaign.viewBonusRate
   );
+  const syncBadge =
+    analytics.reconnectRequired
+      ? { label: "재연결 필요", className: "border-amber-300 bg-amber-50 text-amber-700" }
+      : analytics.syncStatus === "ERROR"
+        ? { label: "동기화 오류", className: "border-red-300 bg-red-50 text-red-700" }
+        : analytics.syncStatus === "ACTIVE"
+          ? { label: "동기화 활성", className: "border-emerald-300 bg-emerald-50 text-emerald-700" }
+          : { label: "동기화 대기", className: "border-zinc-300 bg-zinc-50 text-zinc-700" };
 
   // ─── Handlers ────────────────────────────────────────────
 
@@ -709,12 +763,24 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
           {/* ─── 성과 분석 ─── */}
           {hasClip && (
             <Card>
-              <CardHeader className="space-y-2 pb-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    {sub.isCreator ? "클립 성과 분석" : "내 클립 성과"}
-                  </CardTitle>
+              <CardHeader className="space-y-3 pb-2">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      {sub.isCreator ? "클립 성과 분석" : "내 클립 성과"}
+                    </CardTitle>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className={syncBadge.className}>
+                        {syncBadge.label}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">
+                        {analytics.lastSyncedAt
+                          ? `마지막 동기화: ${new Date(analytics.lastSyncedAt).toLocaleString("ko-KR")}`
+                          : "아직 동기화된 분석 데이터가 없습니다."}
+                      </p>
+                    </div>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
@@ -727,11 +793,6 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                     {refreshingMetrics ? "갱신 중..." : "메트릭 갱신"}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {analytics.lastSyncedAt
-                    ? `마지막 동기화: ${new Date(analytics.lastSyncedAt).toLocaleString("ko-KR")}`
-                    : "아직 동기화된 분석 데이터가 없습니다."}
-                </p>
                 <p className="text-xs text-muted-foreground">{analytics.freshnessNote}</p>
                 {analytics.reconnectRequired && (
                   <div className="rounded-md border border-amber-400/70 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -743,14 +804,24 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                   </div>
                 )}
               </CardHeader>
-              <CardContent className="space-y-5">
-                <div>
-                  <p className="mb-2 text-sm font-medium text-muted-foreground">조회수 추이</p>
-                  <ViewChart data={chartData} height={200} />
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {RANGE_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.key}
+                      type="button"
+                      size="sm"
+                      variant={selectedRange === preset.key ? "secondary" : "outline"}
+                      onClick={() => setSelectedRange(preset.key)}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
                 </div>
 
                 {sub.isCreator ? (
                   <StatsGrid
+                    columns={4}
                     stats={[
                       {
                         label: "현재 조회수",
@@ -758,8 +829,9 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                       },
                       {
                         label: "제출 후 증가",
-                        value: viewsDelta >= 0 ? `+${viewsDelta.toLocaleString()}회` : `${viewsDelta.toLocaleString()}회`,
-                        color: viewsDelta >= 0 ? "text-green-600" : "text-red-600",
+                        value: formatDelta(submissionDelta),
+                        color: getDeltaColor(submissionDelta),
+                        sub: `선택 구간 ${formatDelta(selectedRangeDelta)}`,
                       },
                       analytics.provider === "YOUTUBE" && analytics.creatorBreakdown?.platform === "YOUTUBE"
                         ? {
@@ -791,93 +863,147 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                   />
                 ) : (
                   <StatsGrid
+                    columns={4}
                     stats={[
                       {
                         label: "현재 조회수",
                         value: `${currentViews.toLocaleString()}회`,
                       },
                       {
-                        label: "좋아요 / 댓글",
-                        value: `${currentLikes.toLocaleString()} / ${currentComments.toLocaleString()}`,
+                        label: "제출 후 증가 (선택 구간)",
+                        value: formatDelta(selectedRangeDelta),
+                        color: getDeltaColor(selectedRangeDelta),
+                        sub: `누적 ${formatDelta(submissionDelta)}`,
                       },
                       {
-                        label: "제출 후 증가",
-                        value: viewsDelta >= 0 ? `+${viewsDelta.toLocaleString()}회` : `${viewsDelta.toLocaleString()}회`,
-                        color: viewsDelta >= 0 ? "text-green-600" : "text-red-600",
+                        label: "좋아요",
+                        value: currentLikes.toLocaleString(),
+                      },
+                      {
+                        label: "댓글",
+                        value: currentComments.toLocaleString(),
                       },
                     ]}
                   />
                 )}
 
-                {sub.isCreator && analytics.provider === "YOUTUBE" && analytics.creatorBreakdown?.platform === "YOUTUBE" && (
-                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4 text-sm">
-                    <p className="font-medium">YouTube 상세 분석</p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">평균 시청 시간</span>
-                        <span>{analytics.creatorBreakdown.averageViewDurationSec != null ? `${Math.round(analytics.creatorBreakdown.averageViewDurationSec)}초` : "-"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">평균 유지율</span>
-                        <span>{analytics.creatorBreakdown.averageViewPercentage != null ? `${analytics.creatorBreakdown.averageViewPercentage.toFixed(2)}%` : "-"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">총 시청 시간</span>
-                        <span>{analytics.creatorBreakdown.estimatedMinutesWatched != null ? `${analytics.creatorBreakdown.estimatedMinutesWatched.toLocaleString()}분` : "-"}</span>
-                      </div>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">유입: 외부</span>
-                        <span>{analytics.creatorBreakdown.trafficExternalViews?.toLocaleString() ?? "-"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">유입: 검색</span>
-                        <span>{analytics.creatorBreakdown.trafficSearchViews?.toLocaleString() ?? "-"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">유입: 추천</span>
-                        <span>{analytics.creatorBreakdown.trafficSuggestedViews?.toLocaleString() ?? "-"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">유입: 직접/기타</span>
-                        <span>{analytics.creatorBreakdown.trafficDirectViews?.toLocaleString() ?? "-"}</span>
-                      </div>
-                    </div>
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium">조회수 추이</p>
+                    <p className="text-xs text-muted-foreground">
+                      버킷 간격: {bucketUnitLabel}
+                    </p>
                   </div>
-                )}
-
-                {sub.isCreator && analytics.provider === "INSTAGRAM" && analytics.creatorBreakdown?.platform === "INSTAGRAM" && (
-                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4 text-sm">
-                    <p className="font-medium">Instagram 상세 분석</p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">플레이/조회</span>
-                        <span>{analytics.creatorBreakdown.playsOrViews.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">도달</span>
-                        <span>{analytics.creatorBreakdown.reach?.toLocaleString() ?? "-"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">노출</span>
-                        <span>{analytics.creatorBreakdown.impressions?.toLocaleString() ?? "-"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">공유 + 저장</span>
-                        <span>{((analytics.creatorBreakdown.shares ?? 0) + (analytics.creatorBreakdown.saves ?? 0)).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-                  일평균 조회수 증가: {velocity > 0 ? `+${velocity.toLocaleString()}/일` : "-"}
+                  <ViewChart data={chartData} height={172} />
+                  {selectedRange === "ALL" && sub.historyTruncated && (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      전체 구간은 최근 {sub.snapshotLoadedCount.toLocaleString()}개 스냅샷 기준입니다.
+                      (총 {sub.snapshotTotalCount.toLocaleString()}개)
+                    </p>
+                  )}
                 </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border bg-muted/20 p-3.5">
+                    <p className="text-xs text-muted-foreground">선택 구간 증가</p>
+                    <p className={`mt-1 text-xl font-semibold ${getDeltaColor(selectedRangeDelta)}`}>
+                      {formatDelta(selectedRangeDelta)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/20 p-3.5">
+                    <p className="text-xs text-muted-foreground">구간 평균 증가</p>
+                    <p className={`mt-1 text-xl font-semibold ${getDeltaColor(averagePerBucketDelta)}`}>
+                      {averagePerBucketDelta > 0 ? "+" : ""}{averagePerBucketDelta.toLocaleString()} / {bucketUnitLabel}
+                    </p>
+                  </div>
+                </div>
+
+                {sub.isCreator && (
+                  <div className="rounded-lg border bg-muted/20">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between px-4 py-3 text-left"
+                      onClick={() => setShowAdvancedBreakdown((prev) => !prev)}
+                    >
+                      <p className="text-sm font-medium">고급 플랫폼 분석</p>
+                      {showAdvancedBreakdown ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+
+                    {showAdvancedBreakdown && (
+                      <div className="space-y-4 border-t px-4 py-3 text-sm">
+                        {analytics.provider === "YOUTUBE" && analytics.creatorBreakdown?.platform === "YOUTUBE" && (
+                          <div className="space-y-3">
+                            <p className="font-medium">YouTube 상세 분석</p>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">평균 시청 시간</span>
+                                <span>{analytics.creatorBreakdown.averageViewDurationSec != null ? `${Math.round(analytics.creatorBreakdown.averageViewDurationSec)}초` : "-"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">평균 유지율</span>
+                                <span>{analytics.creatorBreakdown.averageViewPercentage != null ? `${analytics.creatorBreakdown.averageViewPercentage.toFixed(2)}%` : "-"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">총 시청 시간</span>
+                                <span>{analytics.creatorBreakdown.estimatedMinutesWatched != null ? `${analytics.creatorBreakdown.estimatedMinutesWatched.toLocaleString()}분` : "-"}</span>
+                              </div>
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">유입: 외부</span>
+                                <span>{analytics.creatorBreakdown.trafficExternalViews?.toLocaleString() ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">유입: 검색</span>
+                                <span>{analytics.creatorBreakdown.trafficSearchViews?.toLocaleString() ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">유입: 추천</span>
+                                <span>{analytics.creatorBreakdown.trafficSuggestedViews?.toLocaleString() ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">유입: 직접/기타</span>
+                                <span>{analytics.creatorBreakdown.trafficDirectViews?.toLocaleString() ?? "-"}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {analytics.provider === "INSTAGRAM" && analytics.creatorBreakdown?.platform === "INSTAGRAM" && (
+                          <div className="space-y-3">
+                            <p className="font-medium">Instagram 상세 분석</p>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">플레이/조회</span>
+                                <span>{analytics.creatorBreakdown.playsOrViews.toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">도달</span>
+                                <span>{analytics.creatorBreakdown.reach?.toLocaleString() ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">노출</span>
+                                <span>{analytics.creatorBreakdown.impressions?.toLocaleString() ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">공유 + 저장</span>
+                                <span>{((analytics.creatorBreakdown.shares ?? 0) + (analytics.creatorBreakdown.saves ?? 0)).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Earnings breakdown — REWARD */}
                 {campaignType === "REWARD" && (
-                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                  <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
                     <p className="text-sm font-medium">
                       {sub.isCreator ? "지급 예정 금액" : "예상 수익 금액"}
                     </p>
@@ -911,7 +1037,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
 
                 {/* Earnings breakdown — HYBRID */}
                 {campaignType === "HYBRID" && (
-                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                  <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
                     <p className="text-sm font-medium">
                       {sub.isCreator ? "예상 지급 내역" : "예상 수익 내역"}
                     </p>

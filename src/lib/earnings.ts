@@ -5,10 +5,19 @@ interface Snapshot {
   capturedAt: string;
 }
 
+interface RangePoint {
+  views: number;
+}
+
 export interface EarningsBreakdown {
   fixed: number;
   viewBased: number;
   total: number;
+}
+
+export interface RangeGrowthResult {
+  delta: number;
+  averagePerBucket: number;
 }
 
 export function calculateEstimatedEarnings(
@@ -52,4 +61,17 @@ export function snapshotsToChartData(
   return [...snapshots]
     .sort((a, b) => new Date(a.capturedAt).getTime() - new Date(b.capturedAt).getTime())
     .map((s) => ({ date: s.capturedAt, views: s.viewCount }));
+}
+
+export function calculateRangeGrowth(series: RangePoint[]): RangeGrowthResult {
+  if (series.length < 2) {
+    return { delta: 0, averagePerBucket: 0 };
+  }
+
+  const first = series[0].views;
+  const last = series[series.length - 1].views;
+  const delta = last - first;
+  const averagePerBucket = Math.round(delta / Math.max(1, series.length - 1));
+
+  return { delta, averagePerBucket };
 }
