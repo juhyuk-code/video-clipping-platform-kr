@@ -155,13 +155,9 @@ export default async function MySubmissionsPage() {
                     <div className="space-y-1">
                       <p className="font-medium">{sub.campaign.title}</p>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <a
-                          href={`/profile/${sub.campaign.creator.id}`}
-                          className="hover:underline hover:text-foreground transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <span className="transition-colors">
                           {sub.campaign.creator.nickname ?? sub.campaign.creator.name}
-                        </a>
+                        </span>
                         <Badge variant="outline" className="text-xs">
                           {safeTranslate(tc as (key: string) => string, `type.${sub.campaign.type}`, sub.campaign.type)}
                         </Badge>
