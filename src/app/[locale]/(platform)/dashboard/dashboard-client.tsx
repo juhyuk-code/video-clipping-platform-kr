@@ -428,36 +428,28 @@ function ClipperDashboard({
             )}
 
             {urgencyCta && (
-              <Button asChild size="sm">
-                <Link
-                  href={detailHref}
-                  onClick={(event) => event.stopPropagation()}
-                  className="gap-1"
-                >
+              <Link href={detailHref} onClick={(event) => event.stopPropagation()}>
+                <Button size="sm" className="gap-1">
                   {urgencyCta}
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             )}
 
-            <Button asChild variant={urgencyCta ? "outline" : "default"} size="sm">
-              <Link
-                href={detailHref}
-                onClick={(event) => event.stopPropagation()}
-              >
+            <Link href={detailHref} onClick={(event) => event.stopPropagation()}>
+              <Button variant={urgencyCta ? "outline" : "default"} size="sm">
                 {t("submissionHub.cta.viewSubmissionDetail")}
-              </Link>
-            </Button>
+              </Button>
+            </Link>
 
-            <Button asChild variant="ghost" size="sm">
-              <Link
-                href={campaignHref}
-                onClick={(event) => event.stopPropagation()}
-                className="gap-1"
-              >
+            <Link
+              href={campaignHref}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Button variant="ghost" size="sm" className="gap-1">
                 {t("submissionHub.cta.viewCampaign")}
                 <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
