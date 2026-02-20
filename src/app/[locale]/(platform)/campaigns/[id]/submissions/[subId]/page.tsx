@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import { SubmissionDetailClient } from "./submission-detail-client";
+import { buildSubmissionAnalyticsPayload } from "@/lib/social/submission-analytics";
 
 export default async function SubmissionDetailPage({
   params,
@@ -215,6 +216,7 @@ export default async function SubmissionDetailPage({
       viewCount: s.viewCount,
       capturedAt: s.capturedAt.toISOString(),
     })),
+    analytics: buildSubmissionAnalyticsPayload(submission as any),
     clipperStats: {
       totalSubmissions,
       approvedCount,

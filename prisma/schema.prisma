@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Auth.js Models ──────────────────────────────────────────────
@@ -459,6 +460,18 @@ enum SubmissionStatus {
   PAID
 }
 
+enum SubmissionAnalyticsProvider {
+  YOUTUBE
+  INSTAGRAM
+}
+
+enum MetricsSyncStatus {
+  IDLE
+  ACTIVE
+  ERROR
+  DISCONNECTED
+}
+
 model CampaignSubmission {
   id          String           @id @default(cuid())
   campaignId  String
@@ -490,6 +503,22 @@ model CampaignSubmission {
   latestViewCount  Int       @default(0)
   lastSnapshotAt   DateTime?
 
+  // Submission analytics
+  analyticsProvider       SubmissionAnalyticsProvider?
+  platformVideoId         String?
+  linkedSocialConnectionId String?
+  postedAt                DateTime?
+  ownershipVerifiedAt     DateTime?
+  baselineCapturedAt      DateTime?
+  baselineViewCount       Int?
+  baselineLikeCount       Int?
+  baselineCommentCount    Int?
+  lastMetricsSyncedAt     DateTime?
+  nextMetricsSyncAt       DateTime?
+  metricsSyncStatus       MetricsSyncStatus @default(IDLE)
+  metricsLastError        String?           @db.Text
+  metricsAuthErrorCount   Int               @default(0)
+
   // Payment
   fixedAmount      Decimal?  @db.Decimal(12, 0)
   rewardAmount     Decimal?  @db.Decimal(12, 0)
@@ -501,6 +530,7 @@ model CampaignSubmission {
 
   campaign     Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   clipper      User           @relation("SubmissionClipper", fields: [clipperId], references: [id])
+  linkedSocialConnection SocialConnection? @relation("SubmissionLinkedConnection", fields: [linkedSocialConnectionId], references: [id], onDelete: SetNull)
   snapshots    ViewSnapshot[]
   socialVideos SocialVideo[]
   fraudCheck   FraudCheck?
@@ -508,6 +538,8 @@ model CampaignSubmission {
   @@unique([campaignId, clipperId])
   @@index([campaignId, status])
   @@index([clipperId])
+  @@index([metricsSyncStatus, nextMetricsSyncAt])
+  @@index([linkedSocialConnectionId])
 }
 
 // ─── Social Connections (YouTube, Instagram, TikTok) ────────────
@@ -539,6 +571,7 @@ model SocialConnection {
 
   user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   videos SocialVideo[]
+  linkedSubmissions CampaignSubmission[] @relation("SubmissionLinkedConnection")
 
   @@unique([userId, provider])
   @@unique([provider, providerAccountId])
@@ -586,9 +619,20 @@ model ViewSnapshot {
   likeCount     Int?
   commentCount  Int?
   shareCount    Int?
+  reachCount    Int?
+  impressionCount Int?
+  saveCount     Int?
+  estimatedMinutesWatched Int?
+  averageViewDurationSec Float?
+  averageViewPercentage Float?
+  trafficExternalViews Int?
+  trafficSearchViews Int?
+  trafficSuggestedViews Int?
+  trafficDirectViews Int?
   delta         Int                 @default(0)
   source        ViewSnapshotSource  @default(MANUAL)
   socialVideoId String?
+  rawPayload    Json?
   capturedAt    DateTime            @default(now())
 
   submission CampaignSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)

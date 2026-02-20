@@ -45,6 +45,7 @@ import {
   calculateViewVelocity,
   snapshotsToChartData,
 } from "@/lib/earnings";
+import type { SubmissionAnalyticsPayload } from "@/lib/social/submission-analytics";
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -187,6 +188,7 @@ interface SubmissionData {
     viewCount: number;
     capturedAt: string;
   }[];
+  analytics: SubmissionAnalyticsPayload;
   isCreator: boolean;
   isClipper: boolean;
 }
@@ -222,6 +224,7 @@ function getRelativeDuration(dateStr: string): string {
 export function SubmissionDetailClient({ submission: sub }: { submission: SubmissionData }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [refreshingMetrics, setRefreshingMetrics] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<"REVISION_REQ" | "REJECTED" | null>(null);
   const [revisionNotes, setRevisionNotes] = useState("");
@@ -242,9 +245,14 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
   // Derived data
   const chartData = snapshotsToChartData(sub.snapshots);
   const velocity = calculateViewVelocity(sub.snapshots);
+  const analytics = sub.analytics;
+  const currentViews = analytics.current.views;
+  const currentLikes = analytics.current.likes;
+  const currentComments = analytics.current.comments;
+  const viewsDelta = analytics.deltaSinceSubmission.views;
   const earnings = calculateEstimatedEarnings(
     campaignType,
-    sub.latestViewCount,
+    currentViews,
     sub.campaign.fixedPayPerClip,
     sub.campaign.cprRate,
     sub.campaign.viewBonusRate
@@ -307,6 +315,26 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRefreshMetrics() {
+    setRefreshingMetrics(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/v1/campaigns/${sub.campaign.id}/submissions/${sub.id}/metrics/refresh`,
+        { method: "POST" }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "메트릭 갱신에 실패했습니다.");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "메트릭 갱신에 실패했습니다.");
+    } finally {
+      setRefreshingMetrics(false);
     }
   }
 
@@ -681,11 +709,39 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
           {/* ─── 성과 분석 ─── */}
           {hasClip && (
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  {sub.isCreator ? "클립 성과 분석" : "내 클립 성과"}
-                </CardTitle>
+              <CardHeader className="space-y-2 pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    {sub.isCreator ? "클립 성과 분석" : "내 클립 성과"}
+                  </CardTitle>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={handleRefreshMetrics}
+                    disabled={refreshingMetrics || analytics.reconnectRequired}
+                  >
+                    <RotateCcw className={`h-3.5 w-3.5 ${refreshingMetrics ? "animate-spin" : ""}`} />
+                    {refreshingMetrics ? "갱신 중..." : "메트릭 갱신"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {analytics.lastSyncedAt
+                    ? `마지막 동기화: ${new Date(analytics.lastSyncedAt).toLocaleString("ko-KR")}`
+                    : "아직 동기화된 분석 데이터가 없습니다."}
+                </p>
+                <p className="text-xs text-muted-foreground">{analytics.freshnessNote}</p>
+                {analytics.reconnectRequired && (
+                  <div className="rounded-md border border-amber-400/70 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    소셜 계정 토큰이 만료되었습니다.{" "}
+                    <Link href="/settings" className="underline underline-offset-2">
+                      설정
+                    </Link>
+                    에서 계정을 다시 연결해주세요.
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-5">
                 <div>
@@ -693,29 +749,131 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                   <ViewChart data={chartData} height={200} />
                 </div>
 
-                <StatsGrid
-                  stats={[
-                    {
-                      label: "총 조회수",
-                      value: `${sub.latestViewCount.toLocaleString()}회`,
-                    },
-                    {
-                      label: "일평균 증가",
-                      value: velocity > 0 ? `+${velocity.toLocaleString()}/일` : "-",
-                      color: velocity > 0 ? "text-green-600" : undefined,
-                    },
-                    campaignType === "PROJECT"
-                      ? {
-                          label: "게시 플랫폼",
-                          value: sub.targetPlatform?.replace("_", " ") ?? "-",
-                        }
-                      : {
-                          label: sub.isCreator ? "예상 지급액" : "예상 수익",
-                          value: formatKRW(earnings.total),
-                          color: "text-primary",
-                        },
-                  ]}
-                />
+                {sub.isCreator ? (
+                  <StatsGrid
+                    stats={[
+                      {
+                        label: "현재 조회수",
+                        value: `${currentViews.toLocaleString()}회`,
+                      },
+                      {
+                        label: "제출 후 증가",
+                        value: viewsDelta >= 0 ? `+${viewsDelta.toLocaleString()}회` : `${viewsDelta.toLocaleString()}회`,
+                        color: viewsDelta >= 0 ? "text-green-600" : "text-red-600",
+                      },
+                      analytics.provider === "YOUTUBE" && analytics.creatorBreakdown?.platform === "YOUTUBE"
+                        ? {
+                            label: "좋아요/조회 비율",
+                            value: analytics.creatorBreakdown.likeToViewRatio != null
+                              ? `${(analytics.creatorBreakdown.likeToViewRatio * 100).toFixed(2)}%`
+                              : "-",
+                          }
+                        : {
+                            label: "좋아요/도달 비율",
+                            value: analytics.provider === "INSTAGRAM" && analytics.creatorBreakdown?.platform === "INSTAGRAM" && analytics.creatorBreakdown.likeToReachRatio != null
+                              ? `${(analytics.creatorBreakdown.likeToReachRatio * 100).toFixed(2)}%`
+                              : "-",
+                          },
+                      analytics.provider === "YOUTUBE" && analytics.creatorBreakdown?.platform === "YOUTUBE"
+                        ? {
+                            label: "댓글/조회 비율",
+                            value: analytics.creatorBreakdown.commentToViewRatio != null
+                              ? `${(analytics.creatorBreakdown.commentToViewRatio * 100).toFixed(2)}%`
+                              : "-",
+                          }
+                        : {
+                            label: "댓글/도달 비율",
+                            value: analytics.provider === "INSTAGRAM" && analytics.creatorBreakdown?.platform === "INSTAGRAM" && analytics.creatorBreakdown.commentToReachRatio != null
+                              ? `${(analytics.creatorBreakdown.commentToReachRatio * 100).toFixed(2)}%`
+                              : "-",
+                          },
+                    ]}
+                  />
+                ) : (
+                  <StatsGrid
+                    stats={[
+                      {
+                        label: "현재 조회수",
+                        value: `${currentViews.toLocaleString()}회`,
+                      },
+                      {
+                        label: "좋아요 / 댓글",
+                        value: `${currentLikes.toLocaleString()} / ${currentComments.toLocaleString()}`,
+                      },
+                      {
+                        label: "제출 후 증가",
+                        value: viewsDelta >= 0 ? `+${viewsDelta.toLocaleString()}회` : `${viewsDelta.toLocaleString()}회`,
+                        color: viewsDelta >= 0 ? "text-green-600" : "text-red-600",
+                      },
+                    ]}
+                  />
+                )}
+
+                {sub.isCreator && analytics.provider === "YOUTUBE" && analytics.creatorBreakdown?.platform === "YOUTUBE" && (
+                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4 text-sm">
+                    <p className="font-medium">YouTube 상세 분석</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">평균 시청 시간</span>
+                        <span>{analytics.creatorBreakdown.averageViewDurationSec != null ? `${Math.round(analytics.creatorBreakdown.averageViewDurationSec)}초` : "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">평균 유지율</span>
+                        <span>{analytics.creatorBreakdown.averageViewPercentage != null ? `${analytics.creatorBreakdown.averageViewPercentage.toFixed(2)}%` : "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">총 시청 시간</span>
+                        <span>{analytics.creatorBreakdown.estimatedMinutesWatched != null ? `${analytics.creatorBreakdown.estimatedMinutesWatched.toLocaleString()}분` : "-"}</span>
+                      </div>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">유입: 외부</span>
+                        <span>{analytics.creatorBreakdown.trafficExternalViews?.toLocaleString() ?? "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">유입: 검색</span>
+                        <span>{analytics.creatorBreakdown.trafficSearchViews?.toLocaleString() ?? "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">유입: 추천</span>
+                        <span>{analytics.creatorBreakdown.trafficSuggestedViews?.toLocaleString() ?? "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">유입: 직접/기타</span>
+                        <span>{analytics.creatorBreakdown.trafficDirectViews?.toLocaleString() ?? "-"}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {sub.isCreator && analytics.provider === "INSTAGRAM" && analytics.creatorBreakdown?.platform === "INSTAGRAM" && (
+                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4 text-sm">
+                    <p className="font-medium">Instagram 상세 분석</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">플레이/조회</span>
+                        <span>{analytics.creatorBreakdown.playsOrViews.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">도달</span>
+                        <span>{analytics.creatorBreakdown.reach?.toLocaleString() ?? "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">노출</span>
+                        <span>{analytics.creatorBreakdown.impressions?.toLocaleString() ?? "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">공유 + 저장</span>
+                        <span>{((analytics.creatorBreakdown.shares ?? 0) + (analytics.creatorBreakdown.saves ?? 0)).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  일평균 조회수 증가: {velocity > 0 ? `+${velocity.toLocaleString()}/일` : "-"}
+                </div>
 
                 {/* Earnings breakdown — REWARD */}
                 {campaignType === "REWARD" && (
@@ -725,7 +883,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                     </p>
                     <div className="text-sm text-muted-foreground">
                       <span className="font-mono">
-                        {sub.latestViewCount.toLocaleString()} ÷ 1,000 × {formatKRW(sub.campaign.cprRate ?? 0)}
+                        {currentViews.toLocaleString()} ÷ 1,000 × {formatKRW(sub.campaign.cprRate ?? 0)}
                       </span>
                       <span className="mx-2">=</span>
                       <span className="font-bold text-foreground">{formatKRW(earnings.viewBased)}</span>
@@ -768,7 +926,7 @@ export function SubmissionDetailClient({ submission: sub }: { submission: Submis
                       </div>
                       <div className="text-xs text-muted-foreground">
                         <span className="font-mono">
-                          {sub.latestViewCount.toLocaleString()} ÷ 1,000 × {formatKRW(sub.campaign.viewBonusRate ?? 0)}
+                          {currentViews.toLocaleString()} ÷ 1,000 × {formatKRW(sub.campaign.viewBonusRate ?? 0)}
                         </span>
                       </div>
                       <div className="flex justify-between border-t pt-2">
