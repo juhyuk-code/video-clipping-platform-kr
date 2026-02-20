@@ -7,6 +7,8 @@ import { notFound, redirect } from "next/navigation";
 import { SubmissionDetailClient } from "./submission-detail-client";
 import { buildSubmissionAnalyticsPayload } from "@/lib/social/submission-analytics";
 
+const SNAPSHOT_HISTORY_LIMIT = 2000;
+
 export default async function SubmissionDetailPage({
   params,
 }: {
@@ -97,7 +99,27 @@ export default async function SubmissionDetailPage({
           },
         },
       },
-      snapshots: { orderBy: { capturedAt: "desc" }, take: 20 },
+      snapshots: {
+        orderBy: { capturedAt: "desc" },
+        take: SNAPSHOT_HISTORY_LIMIT,
+        select: {
+          viewCount: true,
+          likeCount: true,
+          commentCount: true,
+          shareCount: true,
+          reachCount: true,
+          impressionCount: true,
+          saveCount: true,
+          estimatedMinutesWatched: true,
+          averageViewDurationSec: true,
+          averageViewPercentage: true,
+          trafficExternalViews: true,
+          trafficSearchViews: true,
+          trafficSuggestedViews: true,
+          trafficDirectViews: true,
+          capturedAt: true,
+        },
+      },
     },
   });
 
@@ -110,7 +132,7 @@ export default async function SubmissionDetailPage({
 
   // Fetch additional clipper stats in parallel (for creator view)
   const clipperId = submission.clipperId;
-  const [submissionCounts, viewsAggregate, activeCampaignCount] = await Promise.all([
+  const [submissionCounts, viewsAggregate, activeCampaignCount, snapshotTotalCount] = await Promise.all([
     prisma.campaignSubmission.groupBy({
       by: ["status"],
       where: { clipperId },
@@ -126,6 +148,9 @@ export default async function SubmissionDetailPage({
         status: { in: ["JOINED", "SUBMITTED", "IN_REVIEW"] },
         NOT: { id: submission.id },
       },
+    }),
+    prisma.viewSnapshot.count({
+      where: { submissionId: submission.id },
     }),
   ]);
 
@@ -214,9 +239,14 @@ export default async function SubmissionDetailPage({
     },
     snapshots: submission.snapshots.map((s) => ({
       viewCount: s.viewCount,
+      likeCount: s.likeCount,
+      commentCount: s.commentCount,
       capturedAt: s.capturedAt.toISOString(),
     })),
-    analytics: buildSubmissionAnalyticsPayload(submission as any),
+    snapshotTotalCount,
+    snapshotLoadedCount: submission.snapshots.length,
+    historyTruncated: snapshotTotalCount > submission.snapshots.length,
+    analytics: buildSubmissionAnalyticsPayload(submission),
     clipperStats: {
       totalSubmissions,
       approvedCount,
