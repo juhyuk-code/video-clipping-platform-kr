@@ -235,17 +235,23 @@ export function CampaignActions({
               </div>
             )}
             <div className="rounded-lg border border-amber-400/70 bg-amber-50 p-3 text-sm text-amber-800">
-              <p className="font-medium">이 캠페인 참여 전 준비</p>
+              <p className="font-medium">이 캠페인 참여 전 필수 설정</p>
               <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-xs">
                 <li>YouTube 계정을 연결합니다.</li>
-                <li>Google 동의 화면에서 필수 권한 2개를 모두 허용합니다.</li>
+                <li>Google 동의 화면에서 아래 2개 권한을 모두 허용합니다.</li>
                 <li>캠페인 페이지로 돌아와 참여를 진행합니다.</li>
               </ol>
+              <p className="mt-2 text-xs">
+                필수 권한: 1) YouTube 계정 정보 보기 (youtube.readonly), 2) YouTube 분석 데이터 보기 (yt-analytics.readonly)
+              </p>
             </div>
 
             {youtubeJoinGate.status === "MISSING_SCOPE" && (
               <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
-                필수 권한 누락: {youtubeJoinGate.missingScopes.map((scope) => scope.split("/").pop()).join(", ")}
+                필수 권한 일부가 빠졌습니다. 재연결 후 두 권한을 모두 허용해주세요.
+                {youtubeJoinGate.missingScopes.length > 0 && (
+                  <> 누락 권한: {youtubeJoinGate.missingScopes.map((scope) => scope.split("/").pop()).join(", ")}</>
+                )}
               </div>
             )}
 

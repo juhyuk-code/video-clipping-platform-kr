@@ -623,11 +623,11 @@ export default function SettingsPage() {
                         {key === "youtube" && connection && (
                           youtubeScopeReady ? (
                             <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
-                              필수 권한 완료
+                              참여 가능 (권한 확인됨)
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">
-                              권한 부족 (재연결 필요)
+                              참여 불가 (재연결 필요)
                             </Badge>
                           )
                         )}
@@ -645,7 +645,12 @@ export default function SettingsPage() {
                       )}
                       {key === "youtube" && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          필수 권한: youtube.readonly + yt-analytics.readonly
+                          캠페인 참여와 조회수 추적을 위해, 연결 화면에서 아래 2개 권한을 모두 허용해야 합니다.
+                          하나라도 거부하면 참여할 수 없습니다.
+                          <br />
+                          1) YouTube 계정 정보 보기 (youtube.readonly)
+                          <br />
+                          2) YouTube 분석 데이터 보기 (yt-analytics.readonly)
                         </p>
                       )}
                     </div>
