@@ -134,6 +134,13 @@ interface CampaignData {
     revisionNotes: string | null;
     applicationDecisionNotes: string | null;
   } | null;
+  youtubeJoinGate: {
+    required: boolean;
+    status: "READY" | "MISSING_CONNECTION" | "MISSING_SCOPE";
+    missingScopes: string[];
+    connectUrl: string;
+    reconnectUrl: string;
+  };
 }
 
 export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
@@ -322,6 +329,7 @@ export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
             campaignStatus={campaign.status}
             isCreator={showCreatorView}
             mySubmission={campaign.mySubmission}
+            youtubeJoinGate={campaign.youtubeJoinGate}
           />
         </div>
       </div>

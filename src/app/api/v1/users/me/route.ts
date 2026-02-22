@@ -22,6 +22,7 @@ export async function GET() {
           select: {
             id: true,
             provider: true,
+            scope: true,
             username: true,
             displayName: true,
             profileUrl: true,

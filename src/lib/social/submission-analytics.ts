@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { refreshAccessToken, type SocialProviderType } from "@/lib/social/providers";
+import { getYouTubeScopeStatus } from "@/lib/social/youtube-permissions";
 
 const YOUTUBE_DATA_API = "https://www.googleapis.com/youtube/v3";
 const YOUTUBE_ANALYTICS_API = "https://youtubeanalytics.googleapis.com/v2/reports";
@@ -196,9 +197,11 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 async function ensureFreshConnectionToken(connection: {
   id: string;
   provider: string;
+  providerAccountId: string;
   accessToken: string;
   refreshToken: string | null;
   tokenExpiresAt: Date | null;
+  scope?: string | null;
 }) {
   const providerType = mapProviderEnumToType(connection.provider);
   if (!providerType) return { ok: false as const, reason: "Unsupported provider for analytics" };
@@ -240,10 +243,11 @@ async function ensureFreshConnectionToken(connection: {
     connection: {
       id: updated.id,
       provider: updated.provider,
+      providerAccountId: updated.providerAccountId,
       accessToken: updated.accessToken,
       refreshToken: updated.refreshToken,
       tokenExpiresAt: updated.tokenExpiresAt,
-      providerAccountId: updated.providerAccountId,
+      scope: updated.scope,
     },
   };
 }
@@ -581,6 +585,24 @@ function shouldStopSync(submission: {
   return now > graceEnd;
 }
 
+function isReconnectRequiredError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("token") ||
+    lower.includes("토큰") ||
+    lower.includes("만료") ||
+    lower.includes("expired") ||
+    lower.includes("unauthorized") ||
+    lower.includes("access_denied") ||
+    lower.includes("invalid_grant") ||
+    lower.includes("refresh") ||
+    lower.includes("insufficientpermissions") ||
+    lower.includes("insufficient permission") ||
+    lower.includes("scope") ||
+    lower.includes("권한")
+  );
+}
+
 export async function prepareVerifiedSubmissionContext(params: {
   clipperId: string;
   clipUrl: string;
@@ -618,12 +640,20 @@ export async function prepareVerifiedSubmissionContext(params: {
       accessToken: true,
       refreshToken: true,
       tokenExpiresAt: true,
+      scope: true,
     },
   });
 
   if (!connection) {
     const providerLabel = parsed.providerEnum === "YOUTUBE" ? "YouTube" : "Instagram";
     throw new Error(`${providerLabel} 계정을 먼저 연결해야 제출할 수 있습니다.`);
+  }
+
+  if (parsed.providerEnum === "YOUTUBE") {
+    const scopeStatus = getYouTubeScopeStatus(connection.scope);
+    if (!scopeStatus.ready) {
+      throw new Error("YouTube 필수 권한이 누락되었습니다. 설정에서 계정을 재연결하고 두 권한을 모두 허용해주세요.");
+    }
   }
 
   const tokenResult = await ensureFreshConnectionToken(connection);
@@ -729,6 +759,7 @@ export async function syncSubmissionMetrics(submissionId: string): Promise<Submi
           accessToken: true,
           refreshToken: true,
           tokenExpiresAt: true,
+          scope: true,
         },
       },
       snapshots: {
@@ -796,6 +827,7 @@ export async function syncSubmissionMetrics(submissionId: string): Promise<Submi
           accessToken: true,
           refreshToken: true,
           tokenExpiresAt: true,
+          scope: true,
         },
       });
 
@@ -814,12 +846,16 @@ export async function syncSubmissionMetrics(submissionId: string): Promise<Submi
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "submission_linking_failed";
+      const reconnectRequired = isReconnectRequiredError(message);
       await prisma.campaignSubmission.update({
         where: { id: submission.id },
         data: {
-          metricsSyncStatus: "ERROR",
+          metricsSyncStatus: reconnectRequired ? "DISCONNECTED" : "ERROR",
           metricsLastError: message,
-          nextMetricsSyncAt: computeNextMetricsSyncAt(submission.submittedAt, now),
+          nextMetricsSyncAt: reconnectRequired
+            ? null
+            : computeNextMetricsSyncAt(submission.submittedAt, now),
+          ...(reconnectRequired ? { metricsAuthErrorCount: { increment: 1 } } : {}),
         } as any,
       });
       return { ok: false, reason: message };
@@ -850,6 +886,23 @@ export async function syncSubmissionMetrics(submissionId: string): Promise<Submi
       } as any,
     });
     return { ok: false, reason: tokenResult.reason };
+  }
+
+  if (providerEnum === "YOUTUBE") {
+    const scopeStatus = getYouTubeScopeStatus(tokenResult.connection.scope);
+    if (!scopeStatus.ready) {
+      const reason = "YouTube 필수 권한이 누락되었습니다. 설정에서 계정을 재연결하고 두 권한을 모두 허용해주세요.";
+      await prisma.campaignSubmission.update({
+        where: { id: submission.id },
+        data: {
+          metricsSyncStatus: "DISCONNECTED",
+          nextMetricsSyncAt: null,
+          metricsLastError: reason,
+          metricsAuthErrorCount: { increment: 1 },
+        } as any,
+      });
+      return { ok: false, reason };
+    }
   }
 
   try {
@@ -888,12 +941,16 @@ export async function syncSubmissionMetrics(submissionId: string): Promise<Submi
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "metrics_fetch_failed";
+    const reconnectRequired = isReconnectRequiredError(message);
     await prisma.campaignSubmission.update({
       where: { id: submission.id },
       data: {
-        metricsSyncStatus: "ERROR",
+        metricsSyncStatus: reconnectRequired ? "DISCONNECTED" : "ERROR",
         metricsLastError: message,
-        nextMetricsSyncAt: computeNextMetricsSyncAt(submission.submittedAt, now),
+        nextMetricsSyncAt: reconnectRequired
+          ? null
+          : computeNextMetricsSyncAt(submission.submittedAt, now),
+        ...(reconnectRequired ? { metricsAuthErrorCount: { increment: 1 } } : {}),
       } as any,
     });
     return { ok: false, reason: message };
