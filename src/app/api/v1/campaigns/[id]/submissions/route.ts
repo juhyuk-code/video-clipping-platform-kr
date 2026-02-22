@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { apiResponse, apiError, requireAuth, parseBody } from "@/lib/api/helpers";
 import { applyToCampaignSchema } from "@/lib/validations";
+import { getYouTubeScopeStatus } from "@/lib/social/youtube-permissions";
 
 // GET /api/v1/campaigns/[id]/submissions
 export async function GET(
@@ -56,6 +57,28 @@ export async function POST(
     where: { campaignId_clipperId: { campaignId: id, clipperId: user.id } },
   });
   if (existing) return apiError("이미 이 캠페인에 참여했습니다");
+
+  const requiresYouTubeScope = campaign.targetPlatforms.includes("YOUTUBE_SHORTS");
+  if (requiresYouTubeScope) {
+    const youtubeConnection = await prisma.socialConnection.findUnique({
+      where: {
+        userId_provider: {
+          userId: user.id,
+          provider: "YOUTUBE",
+        },
+      },
+      select: { scope: true },
+    });
+
+    if (!youtubeConnection) {
+      return apiError("YouTube 계정을 먼저 연결하고 필수 권한을 허용해야 참여할 수 있습니다.", 403);
+    }
+
+    const scopeStatus = getYouTubeScopeStatus(youtubeConnection.scope);
+    if (!scopeStatus.ready) {
+      return apiError("YouTube 필수 권한(youtube.readonly, yt-analytics.readonly)이 누락되었습니다. 재연결 후 모두 허용해주세요.", 403);
+    }
+  }
 
   const body = await request.json();
 

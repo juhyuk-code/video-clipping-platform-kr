@@ -5,13 +5,15 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { CampaignDetailClient } from "./campaign-detail-client";
+import { defaultLocale } from "@/i18n/config";
+import { getYouTubeScopeStatus } from "@/lib/social/youtube-permissions";
 
 export default async function CampaignDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale?: string }>;
 }) {
-  const { id } = await params;
+  const { id, locale } = await params;
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -35,6 +37,47 @@ export default async function CampaignDetailPage({
   if (!campaign) notFound();
 
   const mySubmission = campaign.submissions.find((s) => s.clipperId === userId);
+  const requiresYouTubeScope = campaign.targetPlatforms.includes("YOUTUBE_SHORTS");
+  const localizedCampaignPath =
+    locale && locale !== defaultLocale
+      ? `/${locale}/campaigns/${id}`
+      : `/campaigns/${id}`;
+
+  let youtubeJoinGate: {
+    required: boolean;
+    status: "READY" | "MISSING_CONNECTION" | "MISSING_SCOPE";
+    missingScopes: string[];
+    connectUrl: string;
+    reconnectUrl: string;
+  } = {
+    required: requiresYouTubeScope,
+    status: "READY",
+    missingScopes: [],
+    connectUrl: `/api/v1/social/connect/youtube?returnTo=${encodeURIComponent(localizedCampaignPath)}&source=campaign`,
+    reconnectUrl: `/api/v1/social/connect/youtube?returnTo=${encodeURIComponent(localizedCampaignPath)}&source=campaign`,
+  };
+
+  if (requiresYouTubeScope && userId && userId !== campaign.creatorId) {
+    const youtubeConnection = await prisma.socialConnection.findUnique({
+      where: {
+        userId_provider: {
+          userId,
+          provider: "YOUTUBE",
+        },
+      },
+      select: {
+        scope: true,
+      },
+    });
+
+    if (!youtubeConnection) {
+      youtubeJoinGate.status = "MISSING_CONNECTION";
+    } else {
+      const scopeStatus = getYouTubeScopeStatus(youtubeConnection.scope);
+      youtubeJoinGate.status = scopeStatus.ready ? "READY" : "MISSING_SCOPE";
+      youtubeJoinGate.missingScopes = scopeStatus.missing;
+    }
+  }
 
   // Serialize data for client component (convert Decimal/Date to number/string)
   const data = {
@@ -84,6 +127,7 @@ export default async function CampaignDetailPage({
           applicationDecisionNotes: mySubmission.applicationDecisionNotes,
         }
       : null,
+    youtubeJoinGate,
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,32 @@ interface Props {
     revisionNotes: string | null;
     applicationDecisionNotes: string | null;
   } | null;
+  youtubeJoinGate?: {
+    required: boolean;
+    status: "READY" | "MISSING_CONNECTION" | "MISSING_SCOPE";
+    missingScopes: string[];
+    connectUrl: string;
+    reconnectUrl: string;
+  };
+}
+
+function mapSocialError(errorCode: string): string {
+  switch (errorCode) {
+    case "access_denied":
+      return "소셜 연결 권한 동의가 취소되었습니다.";
+    case "missing_params":
+      return "연결 응답 정보가 누락되었습니다. 다시 시도해주세요.";
+    case "invalid_state":
+      return "보안 검증에 실패했습니다. 다시 연결해주세요.";
+    case "session_mismatch":
+      return "로그인 세션이 만료되었거나 변경되었습니다. 다시 로그인 후 시도해주세요.";
+    case "token_exchange_failed":
+      return "소셜 토큰 교환에 실패했습니다. 잠시 후 다시 시도해주세요.";
+    case "profile_fetch_failed":
+      return "연결된 계정 프로필 조회에 실패했습니다. 권한을 확인 후 재연결해주세요.";
+    default:
+      return `소셜 연결 실패: ${errorCode}`;
+  }
 }
 
 export function CampaignActions({
@@ -32,6 +58,7 @@ export function CampaignActions({
   campaignStatus,
   isCreator,
   mySubmission,
+  youtubeJoinGate,
 }: Props) {
   const t = useTranslations("campaigns");
   const router = useRouter();
@@ -40,6 +67,38 @@ export function CampaignActions({
   const [success, setSuccess] = useState<string | null>(null);
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const youtubeGateBlocked =
+    Boolean(youtubeJoinGate?.required) && youtubeJoinGate?.status !== "READY";
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const provider = params.get("social_provider");
+    const connected = params.get("social_connected");
+    const scopeStatus = params.get("social_scope_status");
+    const socialError = params.get("social_error");
+
+    if (!provider && !connected && !scopeStatus && !socialError) {
+      return;
+    }
+
+    if (socialError) {
+      setError(mapSocialError(socialError));
+      setSuccess(null);
+    } else if (provider === "youtube" || connected === "youtube") {
+      if (scopeStatus === "ok") {
+        setSuccess("YouTube 연결 및 필수 권한 동의가 완료되었습니다. 이제 캠페인에 참여할 수 있습니다.");
+        setError(null);
+      } else if (scopeStatus === "missing") {
+        setError("YouTube 필수 권한이 누락되었습니다. 재연결 후 두 권한을 모두 허용해주세요.");
+        setSuccess(null);
+      } else if (connected) {
+        setSuccess("YouTube 계정이 연결되었습니다.");
+        setError(null);
+      }
+    }
+
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
 
   async function handleAction(
     url: string,
@@ -149,6 +208,60 @@ export function CampaignActions({
 
   // Not yet joined/applied
   if (!mySubmission) {
+    if (youtubeGateBlocked && youtubeJoinGate) {
+      const ctaLabel =
+        youtubeJoinGate.status === "MISSING_SCOPE"
+          ? "YouTube 재연결하기"
+          : "YouTube 연결하기";
+      const ctaUrl =
+        youtubeJoinGate.status === "MISSING_SCOPE"
+          ? youtubeJoinGate.reconnectUrl
+          : youtubeJoinGate.connectUrl;
+
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>YouTube 권한 연결 필요</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {error && (
+              <div className="rounded-lg border border-destructive bg-destructive/10 p-2 text-xs text-destructive">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="rounded-lg border border-emerald-500 bg-emerald-50 p-2 text-xs text-emerald-700">
+                {success}
+              </div>
+            )}
+            <div className="rounded-lg border border-amber-400/70 bg-amber-50 p-3 text-sm text-amber-800">
+              <p className="font-medium">이 캠페인 참여 전 준비</p>
+              <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-xs">
+                <li>YouTube 계정을 연결합니다.</li>
+                <li>Google 동의 화면에서 필수 권한 2개를 모두 허용합니다.</li>
+                <li>캠페인 페이지로 돌아와 참여를 진행합니다.</li>
+              </ol>
+            </div>
+
+            {youtubeJoinGate.status === "MISSING_SCOPE" && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                필수 권한 누락: {youtubeJoinGate.missingScopes.map((scope) => scope.split("/").pop()).join(", ")}
+              </div>
+            )}
+
+            <Button
+              className="w-full"
+              onClick={() => {
+                window.location.href = ctaUrl;
+              }}
+            >
+              {ctaLabel}
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
     if (campaignType === "REWARD") {
       return (
         <Card>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useMode } from "@/contexts/mode-context";
+import { usePathname } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,12 +21,14 @@ import {
   Instagram,
 } from "lucide-react";
 import { useNicknameCheck } from "@/hooks/use-nickname-check";
+import { getYouTubeScopeStatus } from "@/lib/social/youtube-permissions";
 
 // ─── Types ──────────────────────────────────────────────
 
 interface SocialConnection {
   id: string;
   provider: "YOUTUBE" | "INSTAGRAM" | "TIKTOK";
+  scope?: string | null;
   username?: string;
   displayName?: string;
   profileUrl?: string;
@@ -217,6 +220,7 @@ function getInitials(name?: string | null, email?: string | null): string {
 export default function SettingsPage() {
   const tc = useTranslations("common");
   const { mode } = useMode();
+  const pathname = usePathname();
   const { update: updateSession } = useSession();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -293,14 +297,25 @@ export default function SettingsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connected = params.get("social_connected");
+    const provider = params.get("social_provider");
+    const scopeStatus = params.get("social_scope_status");
     const error = params.get("social_error");
-    if (connected) {
-      setMessage({ type: "success", text: `${connected} 계정이 연결되었습니다.` });
-      fetchProfile();
-      window.history.replaceState({}, "", window.location.pathname);
-    }
+
     if (error) {
       setMessage({ type: "error", text: `연결 실패: ${error}` });
+    } else if ((provider === "youtube" || connected === "youtube") && scopeStatus === "missing") {
+      setMessage({
+        type: "error",
+        text: "YouTube 연결은 완료되었지만 필수 권한이 누락되었습니다. 재연결 후 두 권한을 모두 허용해주세요.",
+      });
+    } else if ((provider === "youtube" || connected === "youtube") && scopeStatus === "ok") {
+      setMessage({ type: "success", text: "YouTube 계정 연결 및 필수 권한 동의가 완료되었습니다." });
+    } else if (connected) {
+      setMessage({ type: "success", text: `${connected} 계정이 연결되었습니다.` });
+    }
+
+    if (connected || provider || scopeStatus || error) {
+      fetchProfile();
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [fetchProfile]);
@@ -590,13 +605,33 @@ export default function SettingsPage() {
         <CardContent className="space-y-3">
           {SOCIAL_PROVIDERS.map(({ key, label, icon: Icon, dbKey }) => {
             const connection = socialConnections.find((c) => c.provider === dbKey);
+            const youtubeScopeStatus =
+              key === "youtube" && connection
+                ? getYouTubeScopeStatus(connection.scope)
+                : null;
+            const youtubeScopeReady = youtubeScopeStatus?.ready ?? false;
+            const returnToPath = pathname || "/settings";
+            const connectUrl = `/api/v1/social/connect/${key}?returnTo=${encodeURIComponent(returnToPath)}&source=settings`;
             return (
               <div key={key} className="rounded-lg border p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Icon className="h-5 w-5" />
                     <div>
-                      <p className="text-sm font-medium">{label}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{label}</p>
+                        {key === "youtube" && connection && (
+                          youtubeScopeReady ? (
+                            <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
+                              필수 권한 완료
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">
+                              권한 부족 (재연결 필요)
+                            </Badge>
+                          )
+                        )}
+                      </div>
                       {connection && (
                         <p className="text-xs text-muted-foreground">
                           {connection.displayName || connection.username}
@@ -606,6 +641,11 @@ export default function SettingsPage() {
                           {connection._count?.videos > 0 && (
                             <> · {connection._count.videos}개 영상</>
                           )}
+                        </p>
+                      )}
+                      {key === "youtube" && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          필수 권한: youtube.readonly + yt-analytics.readonly
                         </p>
                       )}
                     </div>
@@ -622,6 +662,17 @@ export default function SettingsPage() {
                           >
                             <ExternalLink className="h-4 w-4" />
                           </a>
+                        )}
+                        {key === "youtube" && !youtubeScopeReady && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              window.location.href = connectUrl;
+                            }}
+                          >
+                            재연결
+                          </Button>
                         )}
                         <Button
                           variant="ghost"
@@ -650,7 +701,7 @@ export default function SettingsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          window.location.href = `/api/v1/social/connect/${key}`;
+                          window.location.href = connectUrl;
                         }}
                       >
                         연결하기

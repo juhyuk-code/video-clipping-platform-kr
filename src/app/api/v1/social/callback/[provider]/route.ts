@@ -9,12 +9,52 @@ import {
   fetchSocialVideos,
   type SocialProviderType,
 } from "@/lib/social/providers";
+import { getYouTubeScopeStatus } from "@/lib/social/youtube-permissions";
 
 const PROVIDER_ENUM_MAP: Record<SocialProviderType, "YOUTUBE" | "INSTAGRAM" | "TIKTOK"> = {
   youtube: "YOUTUBE",
   instagram: "INSTAGRAM",
   tiktok: "TIKTOK",
 };
+
+function sanitizeReturnTo(returnTo: string | null | undefined): string {
+  if (!returnTo) return "/settings";
+  if (!returnTo.startsWith("/") || returnTo.startsWith("//")) return "/settings";
+  return returnTo;
+}
+
+function buildRedirectUrl(
+  baseUrl: string,
+  returnTo: string,
+  params: Record<string, string | undefined>
+) {
+  const redirect = new URL(returnTo, baseUrl);
+  for (const [key, value] of Object.entries(params)) {
+    if (value) redirect.searchParams.set(key, value);
+  }
+  return redirect.toString();
+}
+
+function parseStatePayload(
+  encodedState: string
+): { userId: string; returnTo: string; source?: "campaign" | "settings" } | null {
+  try {
+    const payload = JSON.parse(Buffer.from(encodedState, "base64url").toString()) as {
+      userId?: string;
+      returnTo?: string;
+      source?: string;
+    };
+
+    if (!payload.userId) return null;
+    return {
+      userId: payload.userId,
+      returnTo: sanitizeReturnTo(payload.returnTo),
+      source: payload.source === "campaign" || payload.source === "settings" ? payload.source : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
 
 // GET /api/v1/social/callback/:provider — OAuth callback handler
 export async function GET(
@@ -32,41 +72,69 @@ export async function GET(
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
+  const parsedState = state ? parseStatePayload(state) : null;
+  const returnTo = parsedState?.returnTo ?? "/settings";
 
   if (error) {
-    return NextResponse.redirect(`${baseUrl}/settings?social_error=${encodeURIComponent(error)}`);
+    return NextResponse.redirect(
+      buildRedirectUrl(baseUrl, returnTo, {
+        social_error: error,
+        social_provider: provider,
+      })
+    );
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(`${baseUrl}/settings?social_error=missing_params`);
+    return NextResponse.redirect(
+      buildRedirectUrl(baseUrl, returnTo, {
+        social_error: "missing_params",
+        social_provider: provider,
+      })
+    );
   }
 
   // Verify state & extract userId
-  let userId: string;
-  try {
-    const statePayload = JSON.parse(Buffer.from(state, "base64url").toString());
-    userId = statePayload.userId;
-    if (!userId) throw new Error("No userId in state");
-  } catch {
-    return NextResponse.redirect(`${baseUrl}/settings?social_error=invalid_state`);
+  if (!parsedState) {
+    return NextResponse.redirect(
+      buildRedirectUrl(baseUrl, "/settings", {
+        social_error: "invalid_state",
+        social_provider: provider,
+      })
+    );
   }
+  const userId = parsedState.userId;
 
   // Double-check the user is still authenticated
   const session = await auth();
   if (!session?.user?.id || session.user.id !== userId) {
-    return NextResponse.redirect(`${baseUrl}/settings?social_error=session_mismatch`);
+    return NextResponse.redirect(
+      buildRedirectUrl(baseUrl, returnTo, {
+        social_error: "session_mismatch",
+        social_provider: provider,
+      })
+    );
   }
 
   // Exchange code for tokens
   const tokens = await exchangeCodeForTokens(provider, code);
   if (!tokens) {
-    return NextResponse.redirect(`${baseUrl}/settings?social_error=token_exchange_failed`);
+    return NextResponse.redirect(
+      buildRedirectUrl(baseUrl, returnTo, {
+        social_error: "token_exchange_failed",
+        social_provider: provider,
+      })
+    );
   }
 
   // Fetch profile info
   const profile = await fetchSocialProfile(provider, tokens.accessToken);
   if (!profile) {
-    return NextResponse.redirect(`${baseUrl}/settings?social_error=profile_fetch_failed`);
+    return NextResponse.redirect(
+      buildRedirectUrl(baseUrl, returnTo, {
+        social_error: "profile_fetch_failed",
+        social_provider: provider,
+      })
+    );
   }
 
   // Upsert social connection
@@ -157,5 +225,16 @@ export async function GET(
     // Video sync is best-effort, don't fail the connection
   }
 
-  return NextResponse.redirect(`${baseUrl}/settings?social_connected=${provider}`);
+  const youtubeScopeStatus =
+    provider === "youtube"
+      ? (getYouTubeScopeStatus(tokens.scope).ready ? "ok" : "missing")
+      : undefined;
+
+  return NextResponse.redirect(
+    buildRedirectUrl(baseUrl, returnTo, {
+      social_connected: provider,
+      social_scope_status: youtubeScopeStatus,
+      social_provider: provider,
+    })
+  );
 }
