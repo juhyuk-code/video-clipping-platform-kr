@@ -13,7 +13,6 @@ import {
   Settings,
   LogOut,
   Scissors,
-  Megaphone,
   Wallet,
   Search,
 } from "lucide-react";
@@ -21,7 +20,7 @@ import { Button } from "@/components/ui/button";
 
 const creatorNav = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { key: "myCampaigns", href: "/campaigns", icon: Megaphone },
+  { key: "browseCampaigns", href: "/campaigns", icon: Search },
   { key: "wallet", href: "/wallet", icon: Wallet },
   { key: "messages", href: "/messages", icon: MessageSquare },
   { key: "analytics", href: "/analytics", icon: BarChart3 },

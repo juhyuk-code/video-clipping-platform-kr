@@ -169,7 +169,7 @@ interface Props {
     walletBalance: number;
     totalEarned: number;
     escrowHeld: number;
-    recentCreatorCampaigns: CreatorCampaignSummary[];
+    creatorCampaigns: CreatorCampaignSummary[];
     clipperSubmissions: ClipperSubmissionSummary[];
   };
 }
@@ -199,12 +199,20 @@ function CreatorDashboard({
           <h1 className="text-3xl font-bold">크리에이터 대시보드</h1>
           <p className="text-muted-foreground">{userName}님, 환영합니다!</p>
         </div>
-        <Link href="/campaigns/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            캠페인 만들기
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/campaigns">
+            <Button variant="outline" className="gap-2">
+              <Search className="h-4 w-4" />
+              캠페인 찾기
+            </Button>
+          </Link>
+          <Link href="/campaigns/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              캠페인 만들기
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -216,15 +224,10 @@ function CreatorDashboard({
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>내 캠페인</CardTitle>
-            <Link href="/campaigns">
-              <Button variant="ghost" size="sm">전체 보기</Button>
-            </Link>
-          </div>
+          <CardTitle>내 캠페인 관리</CardTitle>
         </CardHeader>
         <CardContent>
-          {data.recentCreatorCampaigns.length === 0 ? (
+          {data.creatorCampaigns.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Megaphone className="mb-4 h-12 w-12 text-muted-foreground/50" />
               <p className="text-muted-foreground">아직 캠페인이 없습니다</p>
@@ -237,7 +240,7 @@ function CreatorDashboard({
             </div>
           ) : (
             <div className="space-y-3">
-              {data.recentCreatorCampaigns.map((campaign) => (
+              {data.creatorCampaigns.map((campaign) => (
                 <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
                   <div className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent">
                     <div className="space-y-1">
