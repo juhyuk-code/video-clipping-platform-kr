@@ -35,22 +35,6 @@ const TYPE_LABELS: Record<string, string> = {
   HYBRID: "하이브리드형",
 };
 
-const STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  DRAFT: "outline",
-  ACTIVE: "default",
-  PAUSED: "secondary",
-  COMPLETED: "outline",
-  CANCELLED: "destructive",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "초안",
-  ACTIVE: "진행 중",
-  PAUSED: "일시정지",
-  COMPLETED: "완료",
-  CANCELLED: "취소됨",
-};
-
 const CATEGORIES = [
   { id: "gaming", label: "게이밍" },
   { id: "beauty", label: "뷰티" },
@@ -65,19 +49,16 @@ const CATEGORIES = [
 
 interface Props {
   activeCampaigns: any[];
-  myCampaigns: any[];
   currentType?: string;
   currentCategory?: string;
 }
 
-export function CampaignsClient({ activeCampaigns, myCampaigns, currentType, currentCategory }: Props) {
+export function CampaignsClient({ activeCampaigns, currentType, currentCategory }: Props) {
   const { mode } = useMode();
 
-  if (mode === "creator") {
-    return <CreatorCampaignsView myCampaigns={myCampaigns} />;
-  }
   return (
     <ClipperCampaignsView
+      isCreator={mode === "creator"}
       campaigns={activeCampaigns}
       currentType={currentType}
       currentCategory={currentCategory}
@@ -85,91 +66,34 @@ export function CampaignsClient({ activeCampaigns, myCampaigns, currentType, cur
   );
 }
 
-function CreatorCampaignsView({ myCampaigns }: { myCampaigns: any[] }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">내 캠페인</h1>
-          <p className="text-muted-foreground">내가 만든 캠페인을 관리하세요</p>
-        </div>
-        <Link href="/campaigns/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            캠페인 만들기
-          </Button>
-        </Link>
-      </div>
-
-      {myCampaigns.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-24">
-          <Megaphone className="mb-4 h-16 w-16 text-muted-foreground/30" />
-          <p className="text-lg text-muted-foreground">아직 캠페인이 없습니다</p>
-          <Link href="/campaigns/new" className="mt-4">
-            <Button variant="outline" className="gap-2">
-              <Plus className="h-4 w-4" />
-              첫 캠페인 만들기
-            </Button>
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {myCampaigns.map((c) => (
-            <Link key={c.id} href={`/campaigns/${c.id}`}>
-              <div className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{c.title}</p>
-                    <Badge variant={TYPE_COLORS[c.type]} className="text-xs">
-                      {TYPE_LABELS[c.type]}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(c.deadline).toLocaleDateString("ko-KR")}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {c.submissionCount}명 참여
-                    </span>
-                    {c.totalBudget && (
-                      <span className="flex items-center gap-1">
-                        <Wallet className="h-3 w-3" />
-                        {formatKRW(c.totalBudget)}
-                      </span>
-                    )}
-                    {c.totalSpent > 0 && (
-                      <span className="text-xs">지출: {formatKRW(c.totalSpent)}</span>
-                    )}
-                  </div>
-                </div>
-                <Badge variant={STATUS_COLORS[c.status]}>
-                  {STATUS_LABELS[c.status]}
-                </Badge>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ClipperCampaignsView({
+  isCreator,
   campaigns,
   currentType,
   currentCategory,
 }: {
+  isCreator: boolean;
   campaigns: any[];
   currentType?: string;
   currentCategory?: string;
 }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">캠페인 찾기</h1>
-        <p className="text-muted-foreground">참여할 캠페인을 찾아보세요</p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">캠페인 찾기</h1>
+          <p className="text-muted-foreground">
+            {isCreator ? "다른 진행 중 캠페인을 둘러보세요" : "참여할 캠페인을 찾아보세요"}
+          </p>
+        </div>
+        {isCreator && (
+          <Link href="/campaigns/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              캠페인 만들기
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Search */}

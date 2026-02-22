@@ -14,7 +14,7 @@ async function getDashboardData(userId: string) {
     mySubmissions,
     approvedSubmissions,
     wallet,
-    recentCreatorCampaigns,
+    creatorCampaigns,
     clipperSubmissions,
   ] = await Promise.all([
     prisma.campaign.count({
@@ -31,7 +31,7 @@ async function getDashboardData(userId: string) {
     prisma.campaign.findMany({
       where: { creatorId: userId },
       orderBy: { updatedAt: "desc" },
-      take: 5,
+      take: 50,
       include: { _count: { select: { submissions: true } } },
     }),
     prisma.campaignSubmission.findMany({
@@ -53,7 +53,7 @@ async function getDashboardData(userId: string) {
     walletBalance: Number(wallet?.balance ?? 0),
     totalEarned: Number(wallet?.totalEarned ?? 0),
     escrowHeld: Number(wallet?.escrowHeld ?? 0),
-    recentCreatorCampaigns: recentCreatorCampaigns.map((c) => ({
+    creatorCampaigns: creatorCampaigns.map((c) => ({
       id: c.id,
       title: c.title,
       type: c.type,
@@ -101,7 +101,7 @@ export default async function DashboardPage({
     walletBalance: 0,
     totalEarned: 0,
     escrowHeld: 0,
-    recentCreatorCampaigns: [],
+    creatorCampaigns: [],
     clipperSubmissions: [],
   };
 
