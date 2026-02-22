@@ -314,6 +314,75 @@
       "perView": "Per 1K Views",
       "noSubmissions": "No submissions yet"
     },
+    "creatorSubmissionDashboard": {
+      "operationsSummaryTitle": "Operations Summary",
+      "queue": {
+        "applied": "Applications",
+        "joined": "Waiting for Submission",
+        "review": "In Review",
+        "closed": "Closed"
+      },
+      "controls": {
+        "sort": "Sort",
+        "platform": "Platform"
+      },
+      "sort": {
+        "latest": "Latest",
+        "views": "Views",
+        "payout": "Estimated Payout"
+      },
+      "platform": {
+        "all": "All",
+        "youtube": "YouTube",
+        "instagram": "Instagram",
+        "tiktok": "TikTok"
+      },
+      "topPerforming": {
+        "title": "Top Performing Videos",
+        "subtitle": "Highest-performing submissions right now."
+      },
+      "inbox": {
+        "title": "Submission Inbox"
+      },
+      "cards": {
+        "views": "Views",
+        "estimatedPayout": "Est. Payout",
+        "settledPayout": "Settled Payout",
+        "deltaSinceSubmission": "Growth Since Submission",
+        "syncedAt": "Synced",
+        "notSynced": "No synced analytics yet.",
+        "disconnected": "Social connection is disconnected. Sync has stopped.",
+        "submissionDetail": "Submission Detail",
+        "preview": "Preview",
+        "applicationRejectedReason": "Application Rejection Reason",
+        "revisionRequestedReason": "Revision Requested"
+      },
+      "actions": {
+        "approveAdmission": "Accept Application",
+        "rejectAdmission": "Reject Application",
+        "approveSubmission": "Approve",
+        "requestRevision": "Request Revision",
+        "rejectSubmission": "Reject",
+        "confirmReject": "Confirm Reject",
+        "cancel": "Cancel",
+        "rejectReasonPlaceholder": "Enter a rejection reason (min 5 characters)",
+        "revisionReasonPlaceholder": "Enter revision notes (min 5 characters)"
+      },
+      "previewSheet": {
+        "title": "Clip Preview",
+        "noClipTitle": "No clip available",
+        "noClipDescription": "This submission does not include a previewable clip URL.",
+        "openOriginal": "Open Original Link",
+        "unsupportedEmbed": "This URL cannot be embedded. Please open the original link."
+      },
+      "empty": {
+        "topPerforming": "No video submissions are available for ranking yet.",
+        "applied": "No pending applications.",
+        "joined": "No joiners waiting to submit a clip.",
+        "review": "No submissions currently require review.",
+        "closed": "No closed submissions yet."
+      }
+    },
     "filter": {
       "allTypes": "All Types",
       "allCategories": "All Categories",

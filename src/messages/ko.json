@@ -314,6 +314,75 @@
       "perView": "1000뷰당",
       "noSubmissions": "아직 제출된 클립이 없습니다"
     },
+    "creatorSubmissionDashboard": {
+      "operationsSummaryTitle": "운영 요약",
+      "queue": {
+        "applied": "지원 대기",
+        "joined": "제출 대기",
+        "review": "검토 중",
+        "closed": "완료"
+      },
+      "controls": {
+        "sort": "정렬",
+        "platform": "플랫폼"
+      },
+      "sort": {
+        "latest": "최신순",
+        "views": "조회수순",
+        "payout": "예상 지급액순"
+      },
+      "platform": {
+        "all": "전체",
+        "youtube": "YouTube",
+        "instagram": "Instagram",
+        "tiktok": "TikTok"
+      },
+      "topPerforming": {
+        "title": "상위 성과 클립",
+        "subtitle": "지금 가장 성과가 높은 제출입니다."
+      },
+      "inbox": {
+        "title": "제출 인박스"
+      },
+      "cards": {
+        "views": "조회수",
+        "estimatedPayout": "예상 지급액",
+        "settledPayout": "확정 지급액",
+        "deltaSinceSubmission": "제출 후 증가",
+        "syncedAt": "동기화",
+        "notSynced": "아직 동기화 기록이 없습니다.",
+        "disconnected": "소셜 연결이 끊겨 동기화를 중단했습니다.",
+        "submissionDetail": "제출 상세",
+        "preview": "미리보기",
+        "applicationRejectedReason": "지원 반려 사유",
+        "revisionRequestedReason": "수정 요청"
+      },
+      "actions": {
+        "approveAdmission": "지원 승인",
+        "rejectAdmission": "지원 반려",
+        "approveSubmission": "승인",
+        "requestRevision": "수정 요청",
+        "rejectSubmission": "반려",
+        "confirmReject": "반려 확정",
+        "cancel": "취소",
+        "rejectReasonPlaceholder": "반려 사유를 5자 이상 입력해주세요",
+        "revisionReasonPlaceholder": "수정 요청 사항을 5자 이상 입력해주세요"
+      },
+      "previewSheet": {
+        "title": "클립 미리보기",
+        "noClipTitle": "미리보기할 클립이 없습니다",
+        "noClipDescription": "이 제출에는 확인 가능한 클립 링크가 없습니다.",
+        "openOriginal": "원본 링크 열기",
+        "unsupportedEmbed": "이 링크는 임베드를 지원하지 않아 원본 링크로 확인해야 합니다."
+      },
+      "empty": {
+        "topPerforming": "아직 순위를 계산할 영상 제출이 없습니다.",
+        "applied": "대기 중인 지원이 없습니다.",
+        "joined": "클립 제출 대기 항목이 없습니다.",
+        "review": "지금 검토가 필요한 제출이 없습니다.",
+        "closed": "완료된 제출이 없습니다."
+      }
+    },
     "filter": {
       "allTypes": "전체 유형",
       "allCategories": "전체 카테고리",
