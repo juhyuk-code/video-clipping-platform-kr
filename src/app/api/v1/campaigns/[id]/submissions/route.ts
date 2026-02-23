@@ -16,10 +16,26 @@ export async function GET(
   const campaign = await prisma.campaign.findUnique({ where: { id } });
   if (!campaign) return apiError("Campaign not found", 404);
 
-  // Creator sees all submissions; clipper sees only their own
+  // Creator sees all submissions. Participating editors can view shared analytics board.
   const isCreator = campaign.creatorId === user.id;
+  let isParticipant = false;
+  if (!isCreator) {
+    const participant = await prisma.campaignSubmission.findUnique({
+      where: {
+        campaignId_clipperId: {
+          campaignId: id,
+          clipperId: user.id,
+        },
+      },
+      select: { status: true },
+    });
+    isParticipant = Boolean(
+      participant && !["APPLICATION_REJECTED", "WITHDRAWN"].includes(participant.status)
+    );
+  }
+
   const where: Record<string, unknown> = { campaignId: id };
-  if (!isCreator) where.clipperId = user.id;
+  if (!isCreator && !isParticipant) where.clipperId = user.id;
 
   const submissions = await prisma.campaignSubmission.findMany({
     where,
@@ -32,7 +48,33 @@ export async function GET(
     orderBy: { createdAt: "desc" },
   });
 
-  return apiResponse(submissions);
+  if (isCreator || !isParticipant) {
+    return apiResponse(submissions);
+  }
+
+  const redacted = submissions.map((submission) => ({
+    id: submission.id,
+    campaignId: submission.campaignId,
+    clipperId: submission.clipperId,
+    status: submission.status,
+    clipTitle: submission.clipTitle,
+    clipUrl: submission.clipUrl,
+    thumbnailUrl: submission.thumbnailUrl,
+    targetPlatform: submission.targetPlatform,
+    submittedAt: submission.submittedAt,
+    latestViewCount: submission.latestViewCount,
+    lastMetricsSyncedAt: submission.lastMetricsSyncedAt,
+    metricsSyncStatus: submission.metricsSyncStatus,
+    metricsLastError: submission.metricsLastError,
+    baselineViewCount: submission.baselineViewCount,
+    totalPaid: submission.totalPaid,
+    createdAt: submission.createdAt,
+    updatedAt: submission.updatedAt,
+    clipper: submission.clipper,
+    fraudCheck: null,
+  }));
+
+  return apiResponse(redacted);
 }
 
 // POST /api/v1/campaigns/[id]/submissions — Apply/Join a campaign
@@ -58,31 +100,34 @@ export async function POST(
   });
   if (existing) return apiError("이미 이 캠페인에 참여했습니다");
 
-  const requiresYouTubeScope = campaign.targetPlatforms.includes("YOUTUBE_SHORTS");
-  if (requiresYouTubeScope) {
-    const youtubeConnection = await prisma.socialConnection.findUnique({
-      where: {
-        userId_provider: {
-          userId: user.id,
-          provider: "YOUTUBE",
+  const isCreatorPublishWorkflow = campaign.workflow === "CREATOR_PUBLISH";
+  if (!isCreatorPublishWorkflow) {
+    const requiresYouTubeScope = campaign.targetPlatforms.includes("YOUTUBE_SHORTS");
+    if (requiresYouTubeScope) {
+      const youtubeConnection = await prisma.socialConnection.findUnique({
+        where: {
+          userId_provider: {
+            userId: user.id,
+            provider: "YOUTUBE",
+          },
         },
-      },
-      select: { scope: true },
-    });
+        select: { scope: true },
+      });
 
-    if (!youtubeConnection) {
-      return apiError("YouTube 계정을 먼저 연결하고 필수 권한을 허용해야 참여할 수 있습니다.", 403);
-    }
+      if (!youtubeConnection) {
+        return apiError("YouTube 계정을 먼저 연결하고 필수 권한을 허용해야 참여할 수 있습니다.", 403);
+      }
 
-    const scopeStatus = getYouTubeScopeStatus(youtubeConnection.scope);
-    if (!scopeStatus.ready) {
-      return apiError("YouTube 필수 권한(youtube.readonly, yt-analytics.readonly)이 누락되었습니다. 재연결 후 모두 허용해주세요.", 403);
+      const scopeStatus = getYouTubeScopeStatus(youtubeConnection.scope);
+      if (!scopeStatus.ready) {
+        return apiError("YouTube 필수 권한(youtube.readonly, yt-analytics.readonly)이 누락되었습니다. 재연결 후 모두 허용해주세요.", 403);
+      }
     }
   }
 
   const body = await request.json();
 
-  if (campaign.type === "REWARD") {
+  if (!isCreatorPublishWorkflow && campaign.type === "REWARD") {
     // REWARD type: auto-join, no application needed
     if (campaign.maxParticipants && campaign.participantCount >= campaign.maxParticipants) {
       return apiError("캠페인 최대 참여 인원에 도달했습니다");
@@ -106,7 +151,7 @@ export async function POST(
     return apiResponse(submission, 201);
   }
 
-  // PROJECT or HYBRID: require application with pitch
+  // CREATOR_PUBLISH is always application-first. Legacy PROJECT/HYBRID also use application-first.
   const parsed = parseBody(applyToCampaignSchema, body);
   if ("error" in parsed) return apiError(parsed.error);
 
@@ -129,7 +174,7 @@ export async function POST(
       userId: campaign.creatorId,
       type: "CAMPAIGN_SUBMISSION",
       title: "새 캠페인 지원",
-      body: `${user.name ?? "클리퍼"}님이 "${campaign.title}" 캠페인에 지원했습니다.`,
+      body: `${user.name ?? "에디터"}님이 "${campaign.title}" 캠페인에 지원했습니다.`,
       linkUrl: `/campaigns/${id}`,
     },
   });

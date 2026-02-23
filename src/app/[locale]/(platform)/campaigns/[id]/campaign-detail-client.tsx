@@ -59,11 +59,14 @@ interface CampaignData {
   description: string;
   guidelines: string;
   type: string;
+  workflow: "LEGACY_CLIPPER_PUBLISH" | "CREATOR_PUBLISH";
   status: string;
   createdAt: string;
   creatorId: string;
   creatorName: string;
   isOwner: boolean;
+  isParticipant: boolean;
+  canViewSharedSubmissionBoard: boolean;
   participantCount: number;
   submissionCount: number;
   approvedCount: number;
@@ -95,6 +98,7 @@ export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
   const { mode } = useMode();
 
   const showCreatorView = mode === "creator" && campaign.isOwner;
+  const showSharedSubmissionBoard = campaign.canViewSharedSubmissionBoard;
   const remaining = (campaign.totalBudget ?? 0) - campaign.totalSpent;
 
   return (
@@ -160,19 +164,23 @@ export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
             </CardContent>
           </Card>
 
-          {showCreatorView && (
+          {showSharedSubmissionBoard && (
             <Card>
               <CardHeader>
-                <CardTitle>지원/제출 현황 ({campaign.submissions.length})</CardTitle>
+                <CardTitle>
+                  {showCreatorView ? "지원/제출 현황" : "캠페인 제출 현황"} ({campaign.submissions.length})
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <CreatorSubmissionDashboard
                   campaignId={campaign.id}
                   campaignType={campaign.type}
+                  campaignWorkflow={campaign.workflow}
                   fixedPayPerClip={campaign.fixedPayPerClip}
                   cprRate={campaign.cprRate}
                   viewBonusRate={campaign.viewBonusRate}
                   submissions={campaign.submissions}
+                  showActions={showCreatorView}
                 />
               </CardContent>
             </Card>
@@ -257,6 +265,7 @@ export function CampaignDetailClient({ campaign }: { campaign: CampaignData }) {
           <CampaignActions
             campaignId={campaign.id}
             campaignType={campaign.type}
+            campaignWorkflow={campaign.workflow}
             campaignStatus={campaign.status}
             isCreator={showCreatorView}
             mySubmission={campaign.mySubmission}

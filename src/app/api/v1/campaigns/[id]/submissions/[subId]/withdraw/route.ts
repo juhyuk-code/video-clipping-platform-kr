@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { apiResponse, apiError, requireAuth } from "@/lib/api/helpers";
 
 // PATCH /api/v1/campaigns/[id]/submissions/[subId]/withdraw
-// Clipper withdraws application before clip submission.
+// Editor withdraws application before clip submission.
 export async function PATCH(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string }> }
@@ -74,7 +74,7 @@ export async function PATCH(
       userId: submission.campaign.creatorId,
       type: "SYSTEM",
       title: "지원이 철회되었습니다",
-      body: `"${submission.campaign.title}" 캠페인에서 클리퍼가 지원을 철회했습니다.`,
+      body: `"${submission.campaign.title}" 캠페인에서 에디터가 지원을 철회했습니다.`,
       linkUrl: `/campaigns/${id}`,
     },
   });

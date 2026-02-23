@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { apiResponse, apiError, requireAuth, parseBody, parseQuery } from "@/lib/api/helpers";
 import { createCampaignSchema, campaignQuerySchema } from "@/lib/validations";
+import { assertCreatorYouTubeReady, CreatorYouTubeReadyError } from "@/lib/social/creator-youtube";
 
 // GET /api/v1/campaigns — List/search campaigns
 export async function GET(request: NextRequest) {
@@ -76,17 +77,23 @@ export async function POST(request: NextRequest) {
     if ("error" in parsed) return apiError(parsed.error);
 
     const data = parsed.data;
+    try {
+      await assertCreatorYouTubeReady(user.id);
+    } catch (err) {
+      if (err instanceof CreatorYouTubeReadyError) {
+        return apiError(err.message, 403);
+      }
+      throw err;
+    }
 
-    // Validate type-specific required fields
-    if (data.type === "PROJECT" && !data.fixedPayPerClip) {
-      return apiError("프로젝트형 캠페인은 클립당 고정 금액이 필요합니다");
+    if (data.type !== "HYBRID") {
+      return apiError("새 캠페인은 하이브리드형만 생성할 수 있습니다.", 422);
     }
-    if (data.type === "REWARD" && !data.cprRate) {
-      return apiError("리워드형 캠페인은 CPR(1000뷰당 단가)이 필요합니다");
+    if (!data.fixedPayPerClip || !data.viewBonusRate) {
+      return apiError("하이브리드형 캠페인은 고정 금액과 뷰 보너스 단가가 모두 필요합니다.", 422);
     }
-    if (data.type === "HYBRID" && (!data.fixedPayPerClip || !data.viewBonusRate)) {
-      return apiError("하이브리드형 캠페인은 고정 금액과 뷰 보너스 단가가 모두 필요합니다");
-    }
+
+    const normalizedTargetPlatforms = ["YOUTUBE_SHORTS"];
 
     const campaign = await prisma.campaign.create({
       data: {
@@ -94,14 +101,15 @@ export async function POST(request: NextRequest) {
         title: data.title,
         description: data.description,
         guidelines: data.guidelines,
-        type: data.type,
+        type: "HYBRID",
+        workflow: "CREATOR_PUBLISH",
         contentCategory: data.contentCategory,
         sourceVideoUrl: data.sourceVideoUrl,
         sourceVideoTitle: data.sourceVideoTitle,
-        targetPlatforms: data.targetPlatforms,
+        targetPlatforms: normalizedTargetPlatforms,
         totalBudget: data.totalBudget,
         fixedPayPerClip: data.fixedPayPerClip,
-        cprRate: data.cprRate,
+        cprRate: null,
         viewBonusRate: data.viewBonusRate,
         maxParticipants: data.maxParticipants,
         maxClipsPerUser: data.maxClipsPerUser ?? 1,

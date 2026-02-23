@@ -604,7 +604,8 @@ function isReconnectRequiredError(message: string): boolean {
 }
 
 export async function prepareVerifiedSubmissionContext(params: {
-  clipperId: string;
+  clipperId?: string;
+  ownerUserId?: string;
   clipUrl: string;
   targetPlatform?: string | null;
 }): Promise<{
@@ -626,10 +627,15 @@ export async function prepareVerifiedSubmissionContext(params: {
     throw new Error("선택한 타겟 플랫폼과 클립 URL 플랫폼이 일치하지 않습니다.");
   }
 
+  const ownerUserId = params.ownerUserId ?? params.clipperId;
+  if (!ownerUserId) {
+    throw new Error("소셜 계정 소유자를 확인할 수 없습니다.");
+  }
+
   const connection = await prisma.socialConnection.findUnique({
     where: {
       userId_provider: {
-        userId: params.clipperId,
+        userId: ownerUserId,
         provider: parsed.providerEnum,
       },
     },
@@ -646,7 +652,7 @@ export async function prepareVerifiedSubmissionContext(params: {
 
   if (!connection) {
     const providerLabel = parsed.providerEnum === "YOUTUBE" ? "YouTube" : "Instagram";
-    throw new Error(`${providerLabel} 계정을 먼저 연결해야 제출할 수 있습니다.`);
+    throw new Error(`${providerLabel} 계정을 먼저 연결해야 합니다.`);
   }
 
   if (parsed.providerEnum === "YOUTUBE") {
@@ -746,6 +752,8 @@ export async function syncSubmissionMetrics(submissionId: string): Promise<Submi
     include: {
       campaign: {
         select: {
+          creatorId: true,
+          workflow: true,
           status: true,
           deadline: true,
           endDate: true,
@@ -784,7 +792,10 @@ export async function syncSubmissionMetrics(submissionId: string): Promise<Submi
     return { ok: true, reason: "sync_stopped" };
   }
 
-  const providerFromTarget = deriveAnalyticsProvider(submission.targetPlatform);
+  const isCreatorPublishWorkflow = submission.campaign.workflow === "CREATOR_PUBLISH";
+  const providerFromTarget = isCreatorPublishWorkflow
+    ? ("YOUTUBE" as AnalyticsProviderEnum)
+    : deriveAnalyticsProvider(submission.targetPlatform);
   let providerEnum: AnalyticsProviderEnum | null = submission.analyticsProvider ?? providerFromTarget;
   if (!providerEnum && !submission.targetPlatform && submission.clipUrl) {
     providerEnum = parseSubmissionClipUrl(submission.clipUrl)?.providerEnum ?? null;
@@ -808,9 +819,9 @@ export async function syncSubmissionMetrics(submissionId: string): Promise<Submi
   if (needsLegacyLinking) {
     try {
       const verified = await prepareVerifiedSubmissionContext({
-        clipperId: submission.clipperId,
+        ownerUserId: isCreatorPublishWorkflow ? submission.campaign.creatorId : submission.clipperId,
         clipUrl: submission.clipUrl,
-        targetPlatform: submission.targetPlatform,
+        targetPlatform: isCreatorPublishWorkflow ? "YOUTUBE_SHORTS" : submission.targetPlatform,
       });
 
       providerEnum = verified.providerEnum;

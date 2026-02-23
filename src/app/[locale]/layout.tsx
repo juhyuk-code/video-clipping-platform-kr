@@ -7,7 +7,7 @@ import "@/app/globals.css";
 export const metadata: Metadata = {
   title: "클립 플랫폼 | Clip Platform",
   description:
-    "크리에이터와 클리퍼를 연결하는 플랫폼. 롱폼 콘텐츠를 바이럴 숏폼 클립으로.",
+    "크리에이터와 에디터를 연결하는 플랫폼. 롱폼 콘텐츠를 바이럴 숏폼 클립으로.",
 };
 
 export default async function LocaleLayout({

@@ -386,7 +386,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ specializations, editingTools, languages }),
       });
       if (res.ok) {
-        setMessage({ type: "success", text: "클리퍼 프로필이 저장되었습니다." });
+        setMessage({ type: "success", text: "에디터 프로필이 저장되었습니다." });
         fetchProfile();
       } else {
         const d = await res.json().catch(() => ({}));
@@ -471,7 +471,7 @@ export default function SettingsPage() {
               <h2 className="text-lg font-semibold">{profile?.nickname || "사용자"}</h2>
               <p className="text-sm text-muted-foreground">{profile?.email}</p>
               <div className="mt-1 flex gap-2">
-                <Badge variant="outline">{profile?.role === "CREATOR" ? "크리에이터" : "클리퍼"}</Badge>
+                <Badge variant="outline">{profile?.role === "CREATOR" ? "크리에이터" : "에디터"}</Badge>
                 <Badge variant="secondary">
                   가입일: {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString("ko") : "-"}
                 </Badge>
@@ -599,7 +599,9 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>소셜 플랫폼 연결</CardTitle>
           <CardDescription>
-            YouTube, Instagram, TikTok 계정을 연결하면 채널 정보와 영상 통계를 자동으로 가져옵니다.
+            {mode === "creator"
+              ? "크리에이터 캠페인 생성/운영을 위해 YouTube 연결과 필수 권한 동의가 필요합니다."
+              : "에디터는 소셜 연결 없이도 캠페인에 지원할 수 있습니다. 연결 시 프로필/통계 연동이 활성화됩니다."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -623,11 +625,11 @@ export default function SettingsPage() {
                         {key === "youtube" && connection && (
                           youtubeScopeReady ? (
                             <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
-                              참여 가능 (권한 확인됨)
+                              {mode === "creator" ? "캠페인 운영 가능" : "권한 연결 완료"}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">
-                              참여 불가 (재연결 필요)
+                              {mode === "creator" ? "캠페인 운영 불가 (재연결 필요)" : "권한 부족 (재연결 권장)"}
                             </Badge>
                           )
                         )}
@@ -645,8 +647,9 @@ export default function SettingsPage() {
                       )}
                       {key === "youtube" && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          캠페인 참여와 조회수 추적을 위해, 연결 화면에서 아래 2개 권한을 모두 허용해야 합니다.
-                          하나라도 거부하면 참여할 수 없습니다.
+                          {mode === "creator"
+                            ? "캠페인 생성/활성화와 YouTube 성과 집계를 위해 아래 2개 권한이 모두 필요합니다."
+                            : "연결 시 아래 2개 권한을 모두 허용하면 YouTube 분석 연동을 사용할 수 있습니다."}
                           <br />
                           1) YouTube 계정 정보 보기 (youtube.readonly)
                           <br />
@@ -725,7 +728,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>크리에이터 프로필</CardTitle>
-            <CardDescription>클리퍼에게 보여지는 크리에이터 정보입니다.</CardDescription>
+            <CardDescription>에디터에게 보여지는 크리에이터 정보입니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -761,7 +764,7 @@ export default function SettingsPage() {
               <Textarea
                 value={defaultGuidelines}
                 onChange={(e) => setDefaultGuidelines(e.target.value)}
-                placeholder="클리퍼에게 전달할 기본 가이드라인을 작성하세요"
+                placeholder="에디터에게 전달할 기본 가이드라인을 작성하세요"
                 rows={3}
               />
             </div>
@@ -784,8 +787,8 @@ export default function SettingsPage() {
       {mode === "clipper" && (
         <Card>
           <CardHeader>
-            <CardTitle>클리퍼 프로필</CardTitle>
-            <CardDescription>크리에이터에게 보여지는 클리퍼 정보입니다.</CardDescription>
+            <CardTitle>에디터 프로필</CardTitle>
+            <CardDescription>크리에이터에게 보여지는 에디터 정보입니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -833,7 +836,7 @@ export default function SettingsPage() {
               </div>
             )}
             <Button onClick={handleSaveClipper} disabled={saving}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 저장 중...</> : "클리퍼 프로필 저장"}
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 저장 중...</> : "에디터 프로필 저장"}
             </Button>
           </CardContent>
         </Card>

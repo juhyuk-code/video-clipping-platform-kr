@@ -16,6 +16,7 @@ import {
 interface Props {
   campaignId: string;
   campaignType: string;
+  campaignWorkflow: "LEGACY_CLIPPER_PUBLISH" | "CREATOR_PUBLISH";
   campaignStatus: string;
   isCreator: boolean;
   mySubmission: {
@@ -55,6 +56,7 @@ function mapSocialError(errorCode: string): string {
 export function CampaignActions({
   campaignId,
   campaignType,
+  campaignWorkflow,
   campaignStatus,
   isCreator,
   mySubmission,
@@ -268,7 +270,7 @@ export function CampaignActions({
       );
     }
 
-    if (campaignType === "REWARD") {
+    if (campaignWorkflow !== "CREATOR_PUBLISH" && campaignType === "REWARD") {
       return (
         <Card>
           <CardContent className="space-y-3 p-4">
@@ -343,7 +345,7 @@ export function CampaignActions({
                   required
                 />
               </div>
-              {campaignType === "PROJECT" && (
+              {campaignWorkflow !== "CREATOR_PUBLISH" && campaignType === "PROJECT" && (
                 <div className="space-y-1">
                   <label className="text-sm font-medium">희망 금액 (₩)</label>
                   <Input name="proposedPrice" type="number" placeholder="50000" />
@@ -503,7 +505,11 @@ export function CampaignActions({
                 const form = new FormData(e.currentTarget);
                 handleAction(`/api/v1/campaigns/${campaignId}/submissions/${mySubmission.id}`, "PUT", {
                   clipTitle: form.get("clipTitle"),
-                  clipUrl: form.get("clipUrl") || undefined,
+                  clipUrl:
+                    campaignWorkflow === "CREATOR_PUBLISH"
+                      ? undefined
+                      : (form.get("clipUrl") as string) || undefined,
+                  clipFileUrl: (form.get("clipFileUrl") as string) || undefined,
                   targetPlatform: form.get("targetPlatform") || "YOUTUBE_SHORTS",
                 }, {
                   onSuccess: () => setShowSubmitForm(false),
@@ -516,16 +522,35 @@ export function CampaignActions({
                 <label className="text-sm font-medium">{t("submission.clipTitle")}</label>
                 <Input name="clipTitle" placeholder="클립 제목" required />
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">{t("submission.clipUrl")}</label>
-                <Input name="clipUrl" type="url" placeholder="https://youtube.com/shorts/..." />
-              </div>
+              {campaignWorkflow === "CREATOR_PUBLISH" ? (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">편집본 파일 URL</label>
+                  <Input
+                    name="clipFileUrl"
+                    type="url"
+                    placeholder="https://.../edited-video.mp4"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    이 단계에서는 편집본 파일만 제출합니다. 게시 URL은 승인 후 크리에이터가 연결합니다.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">{t("submission.clipUrl")}</label>
+                  <Input name="clipUrl" type="url" placeholder="https://youtube.com/shorts/..." />
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="text-sm font-medium">{t("fields.targetPlatforms")}</label>
-                <select name="targetPlatform" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <select
+                  name="targetPlatform"
+                  defaultValue={campaignWorkflow === "CREATOR_PUBLISH" ? "YOUTUBE_SHORTS" : undefined}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
                   <option value="YOUTUBE_SHORTS">YouTube Shorts</option>
-                  <option value="TIKTOK">TikTok</option>
-                  <option value="INSTAGRAM_REELS">Instagram Reels</option>
+                  {campaignWorkflow !== "CREATOR_PUBLISH" && <option value="TIKTOK">TikTok</option>}
+                  {campaignWorkflow !== "CREATOR_PUBLISH" && <option value="INSTAGRAM_REELS">Instagram Reels</option>}
                 </select>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
