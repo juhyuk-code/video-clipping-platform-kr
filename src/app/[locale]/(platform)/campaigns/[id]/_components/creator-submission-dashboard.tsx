@@ -31,10 +31,12 @@ import { SubmissionVideoCard } from "./submission-video-card";
 interface CreatorSubmissionDashboardProps {
   campaignId: string;
   campaignType: string;
+  campaignWorkflow: "LEGACY_CLIPPER_PUBLISH" | "CREATOR_PUBLISH";
   fixedPayPerClip: number | null;
   cprRate: number | null;
   viewBonusRate: number | null;
   submissions: CreatorSubmissionInput[];
+  showActions?: boolean;
 }
 
 function getMetricCardTone(queue: CreatorQueueKey) {
@@ -47,10 +49,12 @@ function getMetricCardTone(queue: CreatorQueueKey) {
 export function CreatorSubmissionDashboard({
   campaignId,
   campaignType,
+  campaignWorkflow,
   fixedPayPerClip,
   cprRate,
   viewBonusRate,
   submissions,
+  showActions = true,
 }: CreatorSubmissionDashboardProps) {
   const t = useTranslations("campaigns.creatorSubmissionDashboard");
   const tc = useTranslations("campaigns");
@@ -263,9 +267,10 @@ export function CreatorSubmissionDashboard({
                     submission={submission}
                     rank={submission.rank}
                     variant="top"
-                    showActions
+                    showActions={showActions}
                     labels={cardLabels}
                     statusLabel={getStatusLabel}
+                    campaignWorkflow={campaignWorkflow}
                     onOpenPreview={setPreviewSubmission}
                     onMutated={() => router.refresh()}
                   />
@@ -323,9 +328,10 @@ export function CreatorSubmissionDashboard({
                   campaignId={campaignId}
                   submission={submission}
                   variant="queue"
-                  showActions
+                  showActions={showActions}
                   labels={cardLabels}
                   statusLabel={getStatusLabel}
+                  campaignWorkflow={campaignWorkflow}
                   onOpenPreview={setPreviewSubmission}
                   onMutated={() => router.refresh()}
                 />

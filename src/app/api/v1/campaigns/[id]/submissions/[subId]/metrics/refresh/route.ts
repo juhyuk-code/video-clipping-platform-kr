@@ -41,7 +41,21 @@ export async function POST(
   if (!submission) return apiError("Submission not found", 404);
   if (submission.campaign.id !== id) return apiError("Submission does not belong to this campaign", 400);
 
-  const canAccess = submission.clipperId === user.id || submission.campaign.creatorId === user.id;
+  let canAccess = submission.clipperId === user.id || submission.campaign.creatorId === user.id;
+  if (!canAccess) {
+    const participant = await prisma.campaignSubmission.findUnique({
+      where: {
+        campaignId_clipperId: {
+          campaignId: submission.campaign.id,
+          clipperId: user.id,
+        },
+      },
+      select: { status: true },
+    });
+    canAccess = Boolean(
+      participant && !["APPLICATION_REJECTED", "WITHDRAWN"].includes(participant.status)
+    );
+  }
   if (!canAccess) return apiError("Forbidden", 403);
 
   const rateKey = `${user.id}:${subId}`;

@@ -81,10 +81,10 @@ export function PlatformSidebar() {
             "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white",
             mode === "creator" ? "bg-violet-600" : "bg-emerald-600"
           )}>
-            {mode === "creator" ? "C" : "P"}
+            {mode === "creator" ? "C" : "E"}
           </div>
           <span>
-            {mode === "creator" ? "크리에이터" : "클리퍼"}
+            {mode === "creator" ? "크리에이터" : "에디터"}
           </span>
         </div>
       </div>

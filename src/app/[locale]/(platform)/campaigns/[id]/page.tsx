@@ -46,7 +46,19 @@ export default async function CampaignDetailPage({
   if (!campaign) notFound();
 
   const mySubmission = campaign.submissions.find((s) => s.clipperId === userId);
-  const requiresYouTubeScope = campaign.targetPlatforms.includes("YOUTUBE_SHORTS");
+  const isCampaignOwner = userId === campaign.creatorId;
+  const isParticipant = Boolean(
+    userId &&
+      campaign.submissions.some(
+        (submission) =>
+          submission.clipperId === userId &&
+          !["APPLICATION_REJECTED", "WITHDRAWN"].includes(submission.status)
+      )
+  );
+  const canViewSharedSubmissionBoard = isCampaignOwner || isParticipant;
+  const requiresYouTubeScope =
+    campaign.workflow !== "CREATOR_PUBLISH" &&
+    campaign.targetPlatforms.includes("YOUTUBE_SHORTS");
   const localizedCampaignPath =
     locale && locale !== defaultLocale
       ? `/${locale}/campaigns/${id}`
@@ -95,11 +107,14 @@ export default async function CampaignDetailPage({
     description: campaign.description,
     guidelines: campaign.guidelines,
     type: campaign.type,
+    workflow: campaign.workflow,
     status: campaign.status,
     createdAt: campaign.createdAt.toISOString(),
     creatorId: campaign.creator.id,
     creatorName: campaign.creator.nickname ?? campaign.creator.name ?? "Unknown",
-    isOwner: userId === campaign.creatorId,
+    isOwner: isCampaignOwner,
+    isParticipant,
+    canViewSharedSubmissionBoard,
     participantCount: campaign.participantCount,
     submissionCount: campaign.submissionCount,
     approvedCount: campaign.approvedCount,
@@ -111,35 +126,43 @@ export default async function CampaignDetailPage({
     deadline: campaign.deadline.toISOString(),
     maxParticipants: campaign.maxParticipants,
     targetPlatforms: campaign.targetPlatforms,
-    submissions: campaign.submissions.map((s) => ({
-      id: s.id,
-      status: s.status,
-      clipTitle: s.clipTitle,
-      clipUrl: s.clipUrl,
-      clipFileUrl: s.clipFileUrl,
-      thumbnailUrl: s.thumbnailUrl,
-      targetPlatform: s.targetPlatform,
-      pitch: s.pitch,
-      proposedPrice: s.proposedPrice ? Number(s.proposedPrice) : null,
-      latestViewCount: s.latestViewCount,
-      baselineViewCount: s.baselineViewCount,
-      totalPaid: Number(s.totalPaid),
-      revisionNotes: s.revisionNotes,
-      applicationDecisionNotes: s.applicationDecisionNotes,
-      applicationReviewedAt: s.applicationReviewedAt?.toISOString() ?? null,
-      joinedAt: s.joinedAt?.toISOString() ?? null,
-      withdrawnAt: s.withdrawnAt?.toISOString() ?? null,
-      submittedAt: s.submittedAt?.toISOString() ?? null,
-      updatedAt: s.updatedAt.toISOString(),
-      lastMetricsSyncedAt: s.lastMetricsSyncedAt?.toISOString() ?? null,
-      metricsSyncStatus: s.metricsSyncStatus,
-      metricsLastError: s.metricsLastError,
-      latestLikeCount: s.snapshots[0]?.likeCount ?? null,
-      latestCommentCount: s.snapshots[0]?.commentCount ?? null,
-      latestSnapshotCapturedAt: s.snapshots[0]?.capturedAt?.toISOString() ?? null,
-      createdAt: s.createdAt.toISOString(),
-      clipper: s.clipper,
-    })),
+    submissions: canViewSharedSubmissionBoard
+      ? campaign.submissions.map((s) => {
+          const canViewSensitiveFields = isCampaignOwner || s.clipperId === userId;
+          return {
+            id: s.id,
+            status: s.status,
+            clipTitle: s.clipTitle,
+            clipUrl: s.clipUrl,
+            clipFileUrl: canViewSensitiveFields ? s.clipFileUrl : null,
+            thumbnailUrl: s.thumbnailUrl,
+            targetPlatform: s.targetPlatform,
+            pitch: canViewSensitiveFields ? s.pitch : null,
+            proposedPrice:
+              canViewSensitiveFields && s.proposedPrice ? Number(s.proposedPrice) : null,
+            latestViewCount: s.latestViewCount,
+            baselineViewCount: s.baselineViewCount,
+            totalPaid: Number(s.totalPaid),
+            revisionNotes: canViewSensitiveFields ? s.revisionNotes : null,
+            applicationDecisionNotes: canViewSensitiveFields
+              ? s.applicationDecisionNotes
+              : null,
+            applicationReviewedAt: s.applicationReviewedAt?.toISOString() ?? null,
+            joinedAt: s.joinedAt?.toISOString() ?? null,
+            withdrawnAt: s.withdrawnAt?.toISOString() ?? null,
+            submittedAt: s.submittedAt?.toISOString() ?? null,
+            updatedAt: s.updatedAt.toISOString(),
+            lastMetricsSyncedAt: s.lastMetricsSyncedAt?.toISOString() ?? null,
+            metricsSyncStatus: s.metricsSyncStatus,
+            metricsLastError: s.metricsLastError,
+            latestLikeCount: s.snapshots[0]?.likeCount ?? null,
+            latestCommentCount: s.snapshots[0]?.commentCount ?? null,
+            latestSnapshotCapturedAt: s.snapshots[0]?.capturedAt?.toISOString() ?? null,
+            createdAt: s.createdAt.toISOString(),
+            clipper: s.clipper,
+          };
+        })
+      : [],
     mySubmission: mySubmission
       ? {
           id: mySubmission.id,

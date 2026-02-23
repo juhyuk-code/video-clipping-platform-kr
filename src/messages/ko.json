@@ -20,26 +20,26 @@
     "loading": "로딩 중...",
     "noResults": "결과가 없습니다",
     "creator": "크리에이터",
-    "clipper": "클리퍼",
+    "clipper": "에디터",
     "viewAll": "전체 보기",
     "back": "뒤로"
   },
   "landing": {
     "hero": {
-      "title": "크리에이터와 클리퍼를\n연결하는 플랫폼",
-      "subtitle": "롱폼 콘텐츠를 바이럴 숏폼 클립으로 만들어 보세요. 최고의 클리퍼와 함께하세요.",
+      "title": "크리에이터와 에디터를\n연결하는 플랫폼",
+      "subtitle": "롱폼 콘텐츠를 바이럴 숏폼 클립으로 만들어 보세요. 최고의 에디터와 함께하세요.",
       "ctaCreator": "크리에이터로 시작하기",
-      "ctaClipper": "클리퍼로 시작하기"
+      "ctaClipper": "에디터로 시작하기"
     },
     "features": {
       "title": "왜 클립 플랫폼인가요?",
       "marketplace": {
         "title": "마켓플레이스",
-        "description": "프로젝트를 올리고 최고의 클리퍼를 찾으세요. 카테고리, 예산, 마감일로 필터링할 수 있습니다."
+        "description": "프로젝트를 올리고 최고의 에디터를 찾으세요. 카테고리, 예산, 마감일로 필터링할 수 있습니다."
       },
       "escrow": {
         "title": "안전 결제",
-        "description": "에스크로 시스템으로 크리에이터와 클리퍼 모두 안심할 수 있습니다."
+        "description": "에스크로 시스템으로 크리에이터와 에디터 모두 안심할 수 있습니다."
       },
       "review": {
         "title": "클립 리뷰",
@@ -57,12 +57,12 @@
         "description": "영상 URL과 가이드라인, 예산, 마감일을 설정하세요."
       },
       "step2": {
-        "title": "클리퍼 매칭",
-        "description": "클리퍼가 지원하면 포트폴리오를 확인하고 선택하세요."
+        "title": "에디터 매칭",
+        "description": "에디터가 지원하면 포트폴리오를 확인하고 선택하세요."
       },
       "step3": {
         "title": "클립 제작 & 리뷰",
-        "description": "클리퍼가 클립을 제작하면 검토하고 승인하세요."
+        "description": "에디터가 클립을 제작하면 검토하고 승인하세요."
       },
       "step4": {
         "title": "정산 & 게시",
@@ -71,13 +71,13 @@
     },
     "stats": {
       "creators": "크리에이터",
-      "clippers": "클리퍼",
+      "clippers": "에디터",
       "clipsDelivered": "전달된 클립",
       "totalPaid": "총 정산 금액"
     },
     "cta": {
       "title": "지금 시작하세요",
-      "subtitle": "크리에이터든 클리퍼든, 클립 플랫폼에서 만나보세요.",
+      "subtitle": "크리에이터든 에디터든, 클립 플랫폼에서 만나보세요.",
       "button": "무료로 시작하기"
     },
     "footer": {
@@ -98,8 +98,8 @@
     "continueWithX": "X로 계속하기",
     "selectRole": "역할을 선택해주세요",
     "roleCreator": "크리에이터",
-    "roleCreatorDesc": "내 영상의 클립을 만들어줄 클리퍼를 찾고 싶어요",
-    "roleClipper": "클리퍼",
+    "roleCreatorDesc": "내 영상의 클립을 만들어줄 에디터를 찾고 싶어요",
+    "roleClipper": "에디터",
     "roleClipperDesc": "크리에이터의 영상으로 숏폼 클립을 만들고 싶어요",
     "agreeTerms": "이용약관 및 개인정보처리방침에 동의합니다",
     "alreadyHaveAccount": "이미 계정이 있으신가요?",
@@ -108,7 +108,7 @@
   "dashboard": {
     "welcome": "{name}님, 환영합니다!",
     "creatorDashboard": "크리에이터 대시보드",
-    "clipperDashboard": "클리퍼 대시보드",
+    "clipperDashboard": "에디터 대시보드",
     "activeProjects": "진행 중인 프로젝트",
     "completedProjects": "완료된 프로젝트",
     "totalClips": "총 클립 수",
@@ -169,7 +169,7 @@
     "title": "제목",
     "description": "설명",
     "brief": "클리핑 가이드라인",
-    "briefPlaceholder": "클리퍼에게 원하는 스타일, 톤, 주의사항 등을 설명해주세요",
+    "briefPlaceholder": "에디터에게 원하는 스타일, 톤, 주의사항 등을 설명해주세요",
     "sourceVideo": "원본 영상 URL",
     "sourceVideoPlaceholder": "YouTube, Twitch, AfreecaTV URL을 입력하세요",
     "targetPlatforms": "타겟 플랫폼",
@@ -238,7 +238,7 @@
       "PROJECT": "프로젝트형",
       "REWARD": "리워드형",
       "HYBRID": "하이브리드형",
-      "PROJECT_desc": "고정 금액을 지급하고 클리퍼가 클립을 제작합니다",
+      "PROJECT_desc": "고정 금액을 지급하고 에디터가 클립을 제작합니다",
       "REWARD_desc": "조회수에 따라 보상을 지급합니다 (누구나 참여 가능)",
       "HYBRID_desc": "고정 금액 + 조회수 보너스를 결합합니다"
     },
@@ -253,7 +253,7 @@
       "title": "제목",
       "description": "설명",
       "guidelines": "클리핑 가이드라인",
-      "guidelinesPlaceholder": "클리퍼에게 원하는 스타일, 톤, 주의사항 등을 설명해주세요",
+      "guidelinesPlaceholder": "에디터에게 원하는 스타일, 톤, 주의사항 등을 설명해주세요",
       "sourceVideo": "원본 영상 URL",
       "targetPlatforms": "타겟 플랫폼",
       "category": "카테고리",

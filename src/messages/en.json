@@ -20,26 +20,26 @@
     "loading": "Loading...",
     "noResults": "No results found",
     "creator": "Creator",
-    "clipper": "Clipper",
+    "clipper": "Editor",
     "viewAll": "View All",
     "back": "Back"
   },
   "landing": {
     "hero": {
-      "title": "Connecting Creators\nwith Clippers",
-      "subtitle": "Turn long-form content into viral short-form clips. Work with the best clippers.",
+      "title": "Connecting Creators\nwith Editors",
+      "subtitle": "Turn long-form content into viral short-form clips. Work with the best editors.",
       "ctaCreator": "Start as Creator",
-      "ctaClipper": "Start as Clipper"
+      "ctaClipper": "Start as Editor"
     },
     "features": {
       "title": "Why Clip Platform?",
       "marketplace": {
         "title": "Marketplace",
-        "description": "Post projects and find the best clippers. Filter by category, budget, and deadline."
+        "description": "Post projects and find the best editors. Filter by category, budget, and deadline."
       },
       "escrow": {
         "title": "Secure Payments",
-        "description": "Escrow system ensures both creators and clippers are protected."
+        "description": "Escrow system ensures both creators and editors are protected."
       },
       "review": {
         "title": "Clip Review",
@@ -57,12 +57,12 @@
         "description": "Set your video URL, guidelines, budget, and deadline."
       },
       "step2": {
-        "title": "Match with Clippers",
-        "description": "Review clipper applications and select the best fit."
+        "title": "Match with Editors",
+        "description": "Review editor applications and select the best fit."
       },
       "step3": {
         "title": "Create & Review Clips",
-        "description": "Clipper creates clips. Review and approve them."
+        "description": "Editors create clips. Review and approve them."
       },
       "step4": {
         "title": "Settle & Publish",
@@ -71,13 +71,13 @@
     },
     "stats": {
       "creators": "Creators",
-      "clippers": "Clippers",
+      "clippers": "Editors",
       "clipsDelivered": "Clips Delivered",
       "totalPaid": "Total Paid Out"
     },
     "cta": {
       "title": "Get Started Today",
-      "subtitle": "Whether you're a creator or clipper, Clip Platform is for you.",
+      "subtitle": "Whether you're a creator or editor, Clip Platform is for you.",
       "button": "Start for Free"
     },
     "footer": {
@@ -98,8 +98,8 @@
     "continueWithX": "Continue with X",
     "selectRole": "Select your role",
     "roleCreator": "Creator",
-    "roleCreatorDesc": "I want to find clippers to create clips from my videos",
-    "roleClipper": "Clipper",
+    "roleCreatorDesc": "I want to find editors to create clips from my videos",
+    "roleClipper": "Editor",
     "roleClipperDesc": "I want to create short-form clips from creator videos",
     "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
     "alreadyHaveAccount": "Already have an account?",
@@ -108,7 +108,7 @@
   "dashboard": {
     "welcome": "Welcome, {name}!",
     "creatorDashboard": "Creator Dashboard",
-    "clipperDashboard": "Clipper Dashboard",
+    "clipperDashboard": "Editor Dashboard",
     "activeProjects": "Active Projects",
     "completedProjects": "Completed Projects",
     "totalClips": "Total Clips",
@@ -169,7 +169,7 @@
     "title": "Title",
     "description": "Description",
     "brief": "Clipping Guidelines",
-    "briefPlaceholder": "Describe the style, tone, and any notes for the clipper",
+    "briefPlaceholder": "Describe the style, tone, and any notes for the editor",
     "sourceVideo": "Source Video URL",
     "sourceVideoPlaceholder": "Enter YouTube, Twitch, or AfreecaTV URL",
     "targetPlatforms": "Target Platforms",
@@ -238,7 +238,7 @@
       "PROJECT": "Project-Based",
       "REWARD": "Content Rewards",
       "HYBRID": "Hybrid",
-      "PROJECT_desc": "Fixed pay per clip. Clippers apply, you select and review.",
+      "PROJECT_desc": "Fixed pay per clip. Editors apply, you select and review.",
       "REWARD_desc": "Pay per view. Anyone can join and submit clips.",
       "HYBRID_desc": "Fixed fee per clip plus view-based bonus."
     },
@@ -253,7 +253,7 @@
       "title": "Title",
       "description": "Description",
       "guidelines": "Clipping Guidelines",
-      "guidelinesPlaceholder": "Describe the style, tone, and any notes for the clipper",
+      "guidelinesPlaceholder": "Describe the style, tone, and any notes for the editor",
       "sourceVideo": "Source Video URL",
       "targetPlatforms": "Target Platforms",
       "category": "Category",

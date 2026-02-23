@@ -400,6 +400,11 @@ enum CampaignStatus {
   CANCELLED
 }
 
+enum CampaignWorkflow {
+  LEGACY_CLIPPER_PUBLISH
+  CREATOR_PUBLISH
+}
+
 model Campaign {
   id               String         @id @default(cuid())
   creatorId        String
@@ -407,6 +412,7 @@ model Campaign {
   description      String         @db.Text
   guidelines       String         @db.Text
   type             CampaignType
+  workflow         CampaignWorkflow @default(CREATOR_PUBLISH)
   status           CampaignStatus @default(DRAFT)
   contentCategory  String?
   sourceVideoUrl   String?

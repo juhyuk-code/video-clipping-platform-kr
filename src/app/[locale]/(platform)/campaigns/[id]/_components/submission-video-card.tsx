@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 import { useRouter } from "@/i18n/routing";
-import { Film, ThumbsDown, ThumbsUp, RotateCcw, Play } from "lucide-react";
+import { Film, ThumbsDown, ThumbsUp, RotateCcw, Play, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatKRW } from "@/lib/utils";
 import type { CreatorSubmissionCardVM } from "@/lib/campaigns/submission-dashboard";
@@ -27,6 +28,7 @@ const STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destr
 
 interface SubmissionVideoCardProps {
   campaignId: string;
+  campaignWorkflow: "LEGACY_CLIPPER_PUBLISH" | "CREATOR_PUBLISH";
   submission: CreatorSubmissionCardVM;
   rank?: number;
   variant: "top" | "queue";
@@ -70,6 +72,7 @@ function formatDateTime(dateStr: string, locale: string) {
 
 export function SubmissionVideoCard({
   campaignId,
+  campaignWorkflow,
   submission,
   rank,
   variant,
@@ -87,10 +90,16 @@ export function SubmissionVideoCard({
   const [admissionRejectReason, setAdmissionRejectReason] = useState("");
   const [pendingReviewDecision, setPendingReviewDecision] = useState<"REVISION_REQ" | "REJECTED" | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [showPublicationForm, setShowPublicationForm] = useState(false);
+  const [publicationUrl, setPublicationUrl] = useState(submission.clipUrl ?? "");
 
   const clipperName = submission.clipper.nickname ?? submission.clipper.name ?? "Unknown";
   const canAdmit = submission.status === "APPLIED";
   const canReview = submission.status === "SUBMITTED" || submission.status === "IN_REVIEW";
+  const canLinkPublication =
+    campaignWorkflow === "CREATOR_PUBLISH" &&
+    (submission.status === "APPROVED" || submission.status === "PAID");
+  const hasPublishedClip = Boolean(submission.clipUrl);
 
   const syncMessage = useMemo(() => {
     if (submission.metricsSyncStatus === "DISCONNECTED") {
@@ -101,6 +110,10 @@ export function SubmissionVideoCard({
     }
     return labels.notSynced;
   }, [submission.metricsSyncStatus, submission.lastMetricsSyncedAt, labels, locale]);
+
+  useEffect(() => {
+    setPublicationUrl(submission.clipUrl ?? "");
+  }, [submission.clipUrl]);
 
   async function handleAdmission(decision: "ACCEPT" | "REJECT") {
     setLoading(true);
@@ -153,6 +166,38 @@ export function SubmissionVideoCard({
 
       setPendingReviewDecision(null);
       setReviewNotes("");
+      onMutated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleLinkPublication() {
+    const normalizedUrl = publicationUrl.trim();
+    if (!normalizedUrl) {
+      setError("YouTube 게시 URL을 입력해주세요.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/v1/campaigns/${campaignId}/submissions/${submission.id}/publication`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ publishedUrl: normalizedUrl }),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "게시 URL 연결에 실패했습니다.");
+      }
+
+      setShowPublicationForm(false);
       onMutated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
@@ -238,16 +283,71 @@ export function SubmissionVideoCard({
             <Play className="h-3.5 w-3.5" />
             {labels.preview}
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="flex-1"
-            onClick={() => router.push(`/campaigns/${campaignId}/submissions/${submission.id}`)}
-          >
-            {labels.submissionDetail}
-          </Button>
+          {showActions && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => router.push(`/campaigns/${campaignId}/submissions/${submission.id}`)}
+            >
+              {labels.submissionDetail}
+            </Button>
+          )}
         </div>
+
+        {showActions && canLinkPublication && (
+          <div className="space-y-2 pt-1">
+            {!showPublicationForm ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="w-full gap-1"
+                onClick={() => setShowPublicationForm(true)}
+                disabled={loading}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                {hasPublishedClip ? "YouTube 게시 URL 재연결" : "YouTube 게시 URL 연결"}
+              </Button>
+            ) : (
+              <>
+                <Input
+                  type="url"
+                  value={publicationUrl}
+                  onChange={(event) => setPublicationUrl(event.target.value)}
+                  placeholder="https://youtube.com/shorts/..."
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="flex-1"
+                    onClick={handleLinkPublication}
+                    disabled={loading || publicationUrl.trim().length === 0}
+                  >
+                    연결 저장
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowPublicationForm(false);
+                      setPublicationUrl(submission.clipUrl ?? "");
+                    }}
+                  >
+                    취소
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  크리에이터 채널 소유 영상만 연결할 수 있으며 연결 즉시 분석 수집이 시작됩니다.
+                </p>
+              </>
+            )}
+          </div>
+        )}
 
         {error && (
           <div className="rounded-md border border-destructive bg-destructive/10 p-2 text-xs text-destructive">

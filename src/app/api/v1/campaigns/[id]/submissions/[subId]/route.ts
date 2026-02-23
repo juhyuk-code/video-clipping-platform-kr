@@ -15,7 +15,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string }> }
 ) {
-  const { subId } = await params;
+  const { id, subId } = await params;
   const user = await requireAuth();
   if (!user) return apiError("Unauthorized", 401);
 
@@ -52,13 +52,68 @@ export async function GET(
   });
 
   if (!submission) return apiError("Submission not found", 404);
-  if (submission.clipperId !== user.id && submission.campaign.creatorId !== user.id) {
+  if (submission.campaignId !== id) {
+    return apiError("Submission does not belong to this campaign", 400);
+  }
+
+  const isCreator = submission.campaign.creatorId === user.id;
+  const isOwnerEditor = submission.clipperId === user.id;
+
+  if (isCreator || isOwnerEditor) {
+    return apiResponse({
+      ...submission,
+      analytics: buildSubmissionAnalyticsPayload(submission as any),
+    });
+  }
+
+  const participantSubmission = await prisma.campaignSubmission.findUnique({
+    where: {
+      campaignId_clipperId: {
+        campaignId: submission.campaignId,
+        clipperId: user.id,
+      },
+    },
+    select: { status: true },
+  });
+
+  if (!participantSubmission || ["APPLICATION_REJECTED", "WITHDRAWN"].includes(participantSubmission.status)) {
     return apiError("Forbidden", 403);
   }
 
+  const latestSnapshot = submission.snapshots?.[0] ?? null;
   return apiResponse({
-    ...submission,
-    analytics: buildSubmissionAnalyticsPayload(submission as any),
+    id: submission.id,
+    campaignId: submission.campaignId,
+    clipperId: submission.clipperId,
+    status: submission.status,
+    clipTitle: submission.clipTitle,
+    clipUrl: submission.clipUrl,
+    thumbnailUrl: submission.thumbnailUrl,
+    targetPlatform: submission.targetPlatform,
+    submittedAt: submission.submittedAt,
+    latestViewCount: submission.latestViewCount,
+    lastMetricsSyncedAt: submission.lastMetricsSyncedAt,
+    metricsSyncStatus: submission.metricsSyncStatus,
+    metricsLastError: submission.metricsLastError,
+    createdAt: submission.createdAt,
+    updatedAt: submission.updatedAt,
+    clipper: {
+      id: submission.clipper.id,
+      nickname: submission.clipper.nickname,
+      name: submission.clipper.name,
+      image: submission.clipper.image,
+    },
+    latestSnapshot: latestSnapshot
+      ? {
+          likeCount: latestSnapshot.likeCount,
+          commentCount: latestSnapshot.commentCount,
+          capturedAt: latestSnapshot.capturedAt,
+        }
+      : null,
+    analytics: buildSubmissionAnalyticsPayload({
+      ...submission,
+      snapshots: latestSnapshot ? [latestSnapshot] : [],
+    } as any),
   });
 }
 
@@ -105,7 +160,14 @@ export async function PUT(
     const parsed = parseBody(submitToCampaignSchema, body);
     if ("error" in parsed) return apiError(parsed.error);
 
-    const analyticsProvider = deriveAnalyticsProvider(parsed.data.targetPlatform);
+    const isCreatorPublishWorkflow = submission.campaign.workflow === "CREATOR_PUBLISH";
+    if (isCreatorPublishWorkflow && !parsed.data.clipFileUrl) {
+      return apiError("이 캠페인은 편집본 파일 업로드가 필수입니다. 파일 URL(clipFileUrl)을 포함해 제출해주세요.");
+    }
+
+    const analyticsProvider = isCreatorPublishWorkflow
+      ? null
+      : deriveAnalyticsProvider(parsed.data.targetPlatform);
     let verifiedContext:
       | Awaited<ReturnType<typeof prepareVerifiedSubmissionContext>>
       | null = null;
@@ -120,6 +182,7 @@ export async function PUT(
           clipperId: user.id,
           clipUrl: parsed.data.clipUrl,
           targetPlatform: parsed.data.targetPlatform,
+          ownerUserId: user.id,
         });
       } catch (err) {
         return apiError(err instanceof Error ? err.message : "클립 URL 검증에 실패했습니다.");
@@ -133,10 +196,10 @@ export async function PUT(
         where: { id: subId },
         data: {
           clipTitle: parsed.data.clipTitle,
-          clipUrl: verifiedContext?.canonicalUrl ?? parsed.data.clipUrl,
+          clipUrl: isCreatorPublishWorkflow ? null : verifiedContext?.canonicalUrl ?? parsed.data.clipUrl,
           clipFileUrl: parsed.data.clipFileUrl,
           thumbnailUrl: parsed.data.thumbnailUrl,
-          targetPlatform: parsed.data.targetPlatform,
+          targetPlatform: isCreatorPublishWorkflow ? "YOUTUBE_SHORTS" : parsed.data.targetPlatform,
           status: "SUBMITTED",
           submittedAt,
           analyticsProvider: verifiedContext?.providerEnum ?? null,
